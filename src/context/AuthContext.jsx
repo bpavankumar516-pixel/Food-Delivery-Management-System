@@ -6,13 +6,13 @@ const AuthContext = createContext(null);
 const DEFAULT_USERS = [
   {
     id: 'usr_admin_001',
-    name: 'Sarah Jenkins',
+    name: 'Pavan Kumar',
     email: 'admin@foodix.com',
     password: 'password123',
     role: 'Admin',
-    phone: '+1 (555) 019-2834',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
-    title: 'Senior Operations Admin',
+    phone: '+91 98765 43210',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+    title: 'Foodix Chief Administrator',
     createdAt: '2026-01-10T08:00:00Z',
   },
   {
@@ -60,9 +60,21 @@ export function AuthProvider({ children }) {
   // Load registered users and active session on mount
   useEffect(() => {
     try {
-      // Initialize default users if not in localStorage
+      // Sync Admin name to Pavan Kumar in localStorage
       const storedUsers = localStorage.getItem('foodix_registered_users');
-      if (!storedUsers) {
+      if (storedUsers) {
+        try {
+          const parsed = JSON.parse(storedUsers);
+          const adminIdx = parsed.findIndex((u) => u.role === 'Admin');
+          if (adminIdx !== -1 && parsed[adminIdx].name !== 'Pavan Kumar') {
+            parsed[adminIdx].name = 'Pavan Kumar';
+            parsed[adminIdx].title = 'Foodix Chief Administrator';
+            localStorage.setItem('foodix_registered_users', JSON.stringify(parsed));
+          }
+        } catch {
+          localStorage.setItem('foodix_registered_users', JSON.stringify(DEFAULT_USERS));
+        }
+      } else {
         localStorage.setItem('foodix_registered_users', JSON.stringify(DEFAULT_USERS));
       }
 
@@ -71,8 +83,20 @@ export function AuthProvider({ children }) {
       const storedToken = localStorage.getItem('foodix_token');
 
       if (storedSessionUser && storedToken) {
-        setUser(JSON.parse(storedSessionUser));
-        setToken(storedToken);
+        try {
+          const parsedSession = JSON.parse(storedSessionUser);
+          if (parsedSession.role === 'Admin') {
+            parsedSession.name = 'Pavan Kumar';
+            parsedSession.title = 'Foodix Chief Administrator';
+            parsedSession.avatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200';
+            localStorage.setItem('foodix_auth_user', JSON.stringify(parsedSession));
+          }
+          setUser(parsedSession);
+          setToken(storedToken);
+        } catch {
+          setUser(JSON.parse(storedSessionUser));
+          setToken(storedToken);
+        }
       }
     } catch (error) {
       console.error('Failed to restore session:', error);
@@ -85,7 +109,16 @@ export function AuthProvider({ children }) {
   const getRegisteredUsers = () => {
     try {
       const stored = localStorage.getItem('foodix_registered_users');
-      return stored ? JSON.parse(stored) : DEFAULT_USERS;
+      if (!stored) return DEFAULT_USERS;
+      const parsed = JSON.parse(stored);
+      const adminIdx = parsed.findIndex((u) => u.role === 'Admin');
+      if (adminIdx !== -1) {
+        parsed[adminIdx].name = 'Pavan Kumar';
+        parsed[adminIdx].title = 'Foodix Chief Administrator';
+        parsed[adminIdx].avatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200';
+        localStorage.setItem('foodix_registered_users', JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {
       return DEFAULT_USERS;
     }
@@ -100,10 +133,19 @@ export function AuthProvider({ children }) {
         const users = getRegisteredUsers();
         const normalizedEmail = email.trim().toLowerCase();
 
-        // Find user by email
-        const foundUser = users.find(
-          (u) => u.email.toLowerCase() === normalizedEmail
-        );
+        // Find user by email (supports admin@foodix.com and pavan@foodix.com for Pavan Kumar)
+        const foundUser = users.find((u) => {
+          const userEmail = u.email.toLowerCase();
+          if (
+            (normalizedEmail === 'admin@foodix.com' ||
+              normalizedEmail === 'pavan@foodix.com' ||
+              normalizedEmail === 'pavan') &&
+            u.role === 'Admin'
+          ) {
+            return true;
+          }
+          return userEmail === normalizedEmail;
+        });
 
         if (!foundUser) {
           setIsLoading(false);
@@ -155,11 +197,11 @@ export function AuthProvider({ children }) {
       setTimeout(() => {
         const googleUser = {
           id: `usr_google_${Date.now()}`,
-          name: 'Google User',
-          email: 'user.google@gmail.com',
+          name: selectedRole === 'Admin' ? 'Pavan Kumar' : 'Google User',
+          email: selectedRole === 'Admin' ? 'admin@foodix.com' : 'user.google@gmail.com',
           role: selectedRole,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-          title: 'Google Verified Member',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+          title: selectedRole === 'Admin' ? 'Foodix Chief Administrator' : 'Google Verified Member',
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
         };

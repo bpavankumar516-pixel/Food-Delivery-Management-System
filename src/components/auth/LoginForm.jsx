@@ -112,7 +112,7 @@ export default function LoginForm() {
   return (
     <div className="w-full flex justify-center items-center py-1 sm:py-2 px-1 sm:px-2 relative z-10">
       {/* Floating White Card (Optimized for 30% width column & 100vh fit without scrollbar) */}
-      <div className="w-full max-w-[415px] bg-white rounded-[24px] sm:rounded-[28px] shadow-2xl shadow-slate-900/10 border border-slate-100 p-4 sm:p-5 lg:p-4.5 xl:p-5 relative overflow-hidden backdrop-blur-xs">
+      <div className="w-full max-w-[455px] xl:max-w-[475px] bg-white rounded-[26px] sm:rounded-[30px] shadow-2xl shadow-slate-900/10 border border-slate-100 p-5 sm:p-6 lg:p-5.5 xl:p-6 relative overflow-hidden backdrop-blur-xs">
         
         {/* Top Header Utilities inside Card */}
         <div className="flex items-center justify-end gap-2.5 mb-2 select-none">
