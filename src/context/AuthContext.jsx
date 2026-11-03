@@ -1,0 +1,289 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+const AuthContext = createContext(null);
+
+// Pre-seeded demo credentials for instant testing
+const DEFAULT_USERS = [
+  {
+    id: 'usr_admin_001',
+    name: 'Sarah Jenkins',
+    email: 'admin@foodix.com',
+    password: 'password123',
+    role: 'Admin',
+    phone: '+1 (555) 019-2834',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
+    title: 'Senior Operations Admin',
+    createdAt: '2026-01-10T08:00:00Z',
+  },
+  {
+    id: 'usr_rest_002',
+    name: 'Mario Rossi',
+    email: 'restaurant@foodix.com',
+    password: 'password123',
+    role: 'Restaurant',
+    restaurantName: 'Bella Vista Trattoria',
+    phone: '+1 (555) 014-9988',
+    avatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&q=80&w=200',
+    title: 'Head Chef & Owner',
+    createdAt: '2026-02-15T10:30:00Z',
+  },
+  {
+    id: 'usr_rider_003',
+    name: 'Alex Chen',
+    email: 'delivery@foodix.com',
+    password: 'password123',
+    role: 'Delivery Partner',
+    vehicle: 'Electric Scooter (FDX-99)',
+    phone: '+1 (555) 018-7722',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+    title: 'Top Rated Courier (4.9★)',
+    createdAt: '2026-03-01T12:00:00Z',
+  },
+  {
+    id: 'usr_cust_004',
+    name: 'Emily Watson',
+    email: 'customer@foodix.com',
+    password: 'password123',
+    role: 'Customer',
+    phone: '+1 (555) 012-3456',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200',
+    title: 'Foodie Club VIP',
+    createdAt: '2026-03-20T14:15:00Z',
+  },
+];
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load registered users and active session on mount
+  useEffect(() => {
+    try {
+      // Initialize default users if not in localStorage
+      const storedUsers = localStorage.getItem('foodix_registered_users');
+      if (!storedUsers) {
+        localStorage.setItem('foodix_registered_users', JSON.stringify(DEFAULT_USERS));
+      }
+
+      // Check for existing active session
+      const storedSessionUser = localStorage.getItem('foodix_auth_user');
+      const storedToken = localStorage.getItem('foodix_token');
+
+      if (storedSessionUser && storedToken) {
+        setUser(JSON.parse(storedSessionUser));
+        setToken(storedToken);
+      }
+    } catch (error) {
+      console.error('Failed to restore session:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Helper to fetch all registered users
+  const getRegisteredUsers = () => {
+    try {
+      const stored = localStorage.getItem('foodix_registered_users');
+      return stored ? JSON.parse(stored) : DEFAULT_USERS;
+    } catch {
+      return DEFAULT_USERS;
+    }
+  };
+
+  // Login handler
+  const login = async ({ email, password, role, rememberMe = false }) => {
+    setIsLoading(true);
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const users = getRegisteredUsers();
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Find user by email
+        const foundUser = users.find(
+          (u) => u.email.toLowerCase() === normalizedEmail
+        );
+
+        if (!foundUser) {
+          setIsLoading(false);
+          reject(new Error('No account found with this email address.'));
+          return;
+        }
+
+        // Validate password
+        if (foundUser.password !== password) {
+          setIsLoading(false);
+          reject(new Error('Incorrect password. Please verify and try again.'));
+          return;
+        }
+
+        // Optional role match verification - adapt role if user selected a different tab
+        const authenticatedUser = {
+          ...foundUser,
+          role: role || foundUser.role, // Allow switched role or user's assigned role
+          lastLogin: new Date().toISOString(),
+        };
+
+        const mockToken = `fdx_jwt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+        // Save session
+        setUser(authenticatedUser);
+        setToken(mockToken);
+        localStorage.setItem('foodix_auth_user', JSON.stringify(authenticatedUser));
+        localStorage.setItem('foodix_token', mockToken);
+
+        // Handle remember me
+        if (rememberMe) {
+          localStorage.setItem('foodix_remember_email', normalizedEmail);
+          localStorage.setItem('foodix_remember_role', authenticatedUser.role);
+        } else {
+          localStorage.removeItem('foodix_remember_email');
+          localStorage.removeItem('foodix_remember_role');
+        }
+
+        setIsLoading(false);
+        resolve(authenticatedUser);
+      }, 500); // realistic slight network delay
+    });
+  };
+
+  // Google Single Sign-on Simulation
+  const loginWithGoogle = async (selectedRole = 'Admin') => {
+    setIsLoading(true);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const googleUser = {
+          id: `usr_google_${Date.now()}`,
+          name: 'Google User',
+          email: 'user.google@gmail.com',
+          role: selectedRole,
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+          title: 'Google Verified Member',
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+        };
+        const mockToken = `fdx_google_jwt_${Date.now()}`;
+
+        setUser(googleUser);
+        setToken(mockToken);
+        localStorage.setItem('foodix_auth_user', JSON.stringify(googleUser));
+        localStorage.setItem('foodix_token', mockToken);
+
+        setIsLoading(false);
+        resolve(googleUser);
+      }, 600);
+    });
+  };
+
+  // Register handler
+  const register = async (userData) => {
+    setIsLoading(true);
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const users = getRegisteredUsers();
+        const normalizedEmail = userData.email.trim().toLowerCase();
+
+        // Check for duplicates
+        if (users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
+          setIsLoading(false);
+          reject(new Error('An account with this email address already exists.'));
+          return;
+        }
+
+        const newUser = {
+          id: `usr_${Date.now()}`,
+          name: userData.name.trim(),
+          email: normalizedEmail,
+          password: userData.password,
+          role: userData.role || 'Admin',
+          phone: userData.phone || '+1 (555) 000-0000',
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.name)}`,
+          title: `${userData.role || 'Member'} at Foodix`,
+          createdAt: new Date().toISOString(),
+        };
+
+        const updatedUsers = [...users, newUser];
+        localStorage.setItem('foodix_registered_users', JSON.stringify(updatedUsers));
+
+        // Auto login on register
+        const mockToken = `fdx_jwt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        setUser(newUser);
+        setToken(mockToken);
+        localStorage.setItem('foodix_auth_user', JSON.stringify(newUser));
+        localStorage.setItem('foodix_token', mockToken);
+
+        setIsLoading(false);
+        resolve(newUser);
+      }, 600);
+    });
+  };
+
+  // Reset password handler
+  const resetPassword = async (email, newPassword) => {
+    setIsLoading(true);
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const users = getRegisteredUsers();
+        const normalizedEmail = email.trim().toLowerCase();
+        const index = users.findIndex((u) => u.email.toLowerCase() === normalizedEmail);
+
+        if (index === -1) {
+          setIsLoading(false);
+          reject(new Error('No account found with this email.'));
+          return;
+        }
+
+        users[index].password = newPassword;
+        localStorage.setItem('foodix_registered_users', JSON.stringify(users));
+
+        setIsLoading(false);
+        resolve(true);
+      }, 500);
+    });
+  };
+
+  // Logout handler
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('foodix_auth_user');
+    localStorage.removeItem('foodix_token');
+  };
+
+  // Quick helper to fill demo account
+  const getDemoAccount = (role = 'Admin') => {
+    const users = getRegisteredUsers();
+    return users.find((u) => u.role.toLowerCase() === role.toLowerCase()) || users[0];
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        loginWithGoogle,
+        register,
+        resetPassword,
+        logout,
+        getDemoAccount,
+        DEFAULT_USERS,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
