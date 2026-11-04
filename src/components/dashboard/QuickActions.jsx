@@ -1,14 +1,15 @@
 import React from 'react';
 import { Plus, Utensils, Tag, FileText, Sparkles } from 'lucide-react';
 import { useDashboard } from '../../context/DashboardContext';
+import { useRestaurants } from '../../context/RestaurantContext';
 
 export default function QuickActions() {
   const {
-    setIsAddRestaurantOpen,
     setIsAddMenuItemOpen,
     setIsApplyCouponOpen,
     setIsReportsOpen,
   } = useDashboard();
+  const { setIsAddModalOpen } = useRestaurants();
 
   const actions = [
     {
@@ -19,7 +20,7 @@ export default function QuickActions() {
       badgeBg: 'bg-[#059669] text-white',
       cardBg: 'bg-[#f0fdf4] hover:bg-[#dcfce7]/80 border-emerald-100',
       textColor: 'text-slate-900',
-      onClick: () => setIsAddRestaurantOpen(true),
+      onClick: () => setIsAddModalOpen(true),
     },
     {
       id: 'add_menu_item',
@@ -54,7 +55,7 @@ export default function QuickActions() {
   ];
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-2xs h-full flex flex-col justify-between">
+    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-2xs h-full flex flex-col justify-between select-none">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4 shrink-0">
         <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">

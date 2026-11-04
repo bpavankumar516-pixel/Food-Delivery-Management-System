@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useRestaurants } from './RestaurantContext';
 
 const DashboardContext = createContext(null);
 
@@ -94,43 +95,6 @@ const INITIAL_ORDERS = [
   },
 ];
 
-const INITIAL_ACTIVITIES = [
-  {
-    id: 'act_1',
-    type: 'order',
-    title: 'New order #FDX1005',
-    time: '2 mins ago',
-    iconType: 'bike',
-    color: 'emerald',
-  },
-  {
-    id: 'act_2',
-    type: 'restaurant',
-    title: 'New restaurant registered',
-    subtitle: 'Pizza Hut',
-    time: '5 mins ago',
-    iconType: 'store',
-    color: 'orange',
-  },
-  {
-    id: 'act_3',
-    type: 'delivery',
-    title: 'Order #FDX1004 delivered',
-    time: '8 mins ago',
-    iconType: 'check',
-    color: 'emerald',
-  },
-  {
-    id: 'act_4',
-    type: 'customer',
-    title: 'New customer registered',
-    subtitle: 'Rahul Sharma',
-    time: '12 mins ago',
-    iconType: 'user',
-    color: 'blue',
-  },
-];
-
 const REVENUE_DATASETS = {
   'Last 7 Days': {
     total: '₹78,450',
@@ -174,8 +138,9 @@ const REVENUE_DATASETS = {
 };
 
 export function DashboardProvider({ children }) {
+  const { stats: restStats, addRestaurant, activities, addActivity } = useRestaurants();
+
   const [orders, setOrders] = useState(INITIAL_ORDERS);
-  const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
   const [revenueTimeframe, setRevenueTimeframe] = useState('Last 7 Days');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRealtimeActive, setIsRealtimeActive] = useState(true);
@@ -188,11 +153,12 @@ export function DashboardProvider({ children }) {
   const [isAddMenuItemOpen, setIsAddMenuItemOpen] = useState(false);
   const [isApplyCouponOpen, setIsApplyCouponOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
+  const [isAllActivitiesOpen, setIsAllActivitiesOpen] = useState(false);
 
-  // Dashboard Stats matching reference
+  // Dashboard Stats dynamically synchronized with RestaurantContext
   const [stats, setStats] = useState({
-    totalRestaurants: 24,
-    totalRestaurantsChange: '+12%',
+    totalRestaurants: restStats?.totalRestaurants || 24,
+    totalRestaurantsChange: restStats?.totalChange || '+12%',
     totalFoodItems: 356,
     totalFoodItemsChange: '+8%',
     totalOrders: 1248,
@@ -205,32 +171,56 @@ export function DashboardProvider({ children }) {
     totalCustomersChange: '+14%',
   });
 
+  // Keep totalRestaurants in sync with RestaurantContext
+  useEffect(() => {
+    if (restStats?.totalRestaurants) {
+      setStats((prev) => ({
+        ...prev,
+        totalRestaurants: restStats.totalRestaurants,
+      }));
+    }
+  }, [restStats?.totalRestaurants]);
+
   // Real-time live simulation ticker
   useEffect(() => {
     if (!isRealtimeActive) return;
 
     const interval = setInterval(() => {
-      // Simulate sporadic live updates
       const randomAction = Math.random();
 
       if (randomAction > 0.6) {
-        // Advance an existing order's status
         setOrders((prev) =>
           prev.map((ord, idx) => {
             if (idx === 0 && ord.status === 'Preparing') {
+              addActivity({
+                type: 'delivery',
+                action: 'transit',
+                title: 'Order out for delivery',
+                subtitle: `${ord.id} • ${ord.restaurant}`,
+                color: 'emerald',
+                badge: 'In Transit',
+              });
               return { ...ord, status: 'Out for Delivery', orderTime: 'Just now' };
             }
             if (idx === 1 && ord.status === 'Out for Delivery') {
+              addActivity({
+                type: 'delivery',
+                action: 'delivered',
+                title: `${ord.id} delivered`,
+                subtitle: `${ord.restaurant} • ${ord.customer.name}`,
+                color: 'emerald',
+                badge: 'Delivered',
+              });
               return { ...ord, status: 'Delivered', orderTime: 'Just now' };
             }
             return ord;
           })
         );
       }
-    }, 14000);
+    }, 16000);
 
     return () => clearInterval(interval);
-  }, [isRealtimeActive]);
+  }, [isRealtimeActive, addActivity]);
 
   // Order Status Distribution Calculation
   const orderDistribution = {
@@ -241,25 +231,15 @@ export function DashboardProvider({ children }) {
     cancelledPercent: 6,
   };
 
-  // Add Restaurant Handler
+  // Add Restaurant Handler (persists into RestaurantContext and updates Dashboard activities)
   const handleAddRestaurant = (newRest) => {
-    setStats((prev) => ({
-      ...prev,
-      totalRestaurants: prev.totalRestaurants + 1,
-    }));
-    setActivities((prev) => [
-      {
-        id: `act_${Date.now()}`,
-        type: 'restaurant',
-        title: 'New restaurant registered',
-        subtitle: newRest.name,
-        time: 'Just now',
-        iconType: 'store',
-        color: 'orange',
-      },
-      ...prev.slice(0, 3),
-    ]);
-    toast.success(`Restaurant "${newRest.name}" added successfully to Foodix!`);
+    addRestaurant({
+      name: newRest.name,
+      cuisines: newRest.cuisine || 'Fast Food',
+      location: newRest.location || 'Bengaluru',
+      rating: newRest.rating || '4.5',
+      category: 'Burgers',
+    });
     setIsAddRestaurantOpen(false);
   };
 
@@ -269,12 +249,28 @@ export function DashboardProvider({ children }) {
       ...prev,
       totalFoodItems: prev.totalFoodItems + 1,
     }));
+    addActivity({
+      type: 'menu',
+      action: 'item_add',
+      title: 'New menu item introduced',
+      subtitle: `${newItem.name} (₹${newItem.price})`,
+      color: 'orange',
+      badge: 'Menu Item',
+    });
     toast.success(`Menu item "${newItem.name}" (₹${newItem.price}) added!`);
     setIsAddMenuItemOpen(false);
   };
 
   // Apply Coupon Handler
   const handleApplyCoupon = (coupon) => {
+    addActivity({
+      type: 'coupon',
+      action: 'coupon',
+      title: 'Promotional offer published',
+      subtitle: `${coupon.code} • ${coupon.discount}% OFF`,
+      color: 'blue',
+      badge: 'Coupon',
+    });
     toast.success(`Coupon code "${coupon.code}" activated (${coupon.discount}% OFF)!`);
     setIsApplyCouponOpen(false);
   };
@@ -287,6 +283,14 @@ export function DashboardProvider({ children }) {
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder((prev) => ({ ...prev, status: newStatus }));
     }
+    addActivity({
+      type: 'order',
+      action: 'order_status',
+      title: `Order ${orderId} updated`,
+      subtitle: `Status changed to: ${newStatus}`,
+      color: 'emerald',
+      badge: newStatus,
+    });
     toast.info(`Order ${orderId} status updated to: ${newStatus}`);
   };
 
@@ -327,6 +331,8 @@ export function DashboardProvider({ children }) {
         setIsApplyCouponOpen,
         isReportsOpen,
         setIsReportsOpen,
+        isAllActivitiesOpen,
+        setIsAllActivitiesOpen,
         handleAddRestaurant,
         handleAddMenuItem,
         handleApplyCoupon,

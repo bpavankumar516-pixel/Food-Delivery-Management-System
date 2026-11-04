@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Store,
@@ -15,20 +15,15 @@ import {
   X,
 } from 'lucide-react';
 import Logo from '../common/Logo';
-import { useAuth } from '../../context/AuthContext';
+import LogoutModal from '../common/LogoutModal';
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const location = useLocation();
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, active: true },
-    { name: 'Restaurants', path: '#restaurants', icon: Store },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Restaurants', path: '/restaurants', icon: Store },
     { name: 'Menu Management', path: '#menu', icon: BookOpen, hasSubmenu: true },
     { name: 'Orders', path: '#orders', icon: ShoppingBag },
     { name: 'Customers', path: '#customers', icon: Users },
@@ -69,7 +64,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="lg:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="lg:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
               aria-label="Close Sidebar"
             >
               <X className="w-5 h-5" />
@@ -81,28 +76,35 @@ export default function Sidebar({ isOpen, onClose }) {
         <nav className="flex-1 px-3.5 xl:px-4 py-2 space-y-1.5 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
-            if (item.active) {
+            const isActive =
+              location.pathname === item.path ||
+              (item.path === '/restaurants' && location.pathname.startsWith('/restaurants'));
+
+            if (isActive) {
               return (
-                <div
+                <Link
                   key={item.name}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-gradient-to-r from-[#ff5e28] to-[#ff7539] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-600/30 cursor-pointer"
+                  to={item.path}
+                  onClick={() => onClose && onClose()}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-gradient-to-r from-[#ff5e28] to-[#ff7539] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-600/30 cursor-pointer transition-transform active:scale-[0.98]"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                     <span>{item.name}</span>
                   </div>
-                </div>
+                </Link>
               );
             }
 
             return (
-              <a
+              <Link
                 key={item.name}
-                href={item.path}
+                to={item.path.startsWith('#') ? '#' : item.path}
                 onClick={(e) => {
-                  e.preventDefault();
-                  if (item.name === 'Restaurants' || item.name === 'Menu Management' || item.name === 'Coupons & Offers') {
-                    // Smooth visual feedback
+                  if (item.path.startsWith('#')) {
+                    e.preventDefault();
+                  } else if (onClose) {
+                    onClose();
                   }
                 }}
                 className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-emerald-100/75 hover:text-white hover:bg-white/[0.08] transition-all text-xs sm:text-[13px] font-medium group cursor-pointer"
@@ -114,14 +116,14 @@ export default function Sidebar({ isOpen, onClose }) {
                 {item.hasSubmenu && (
                   <ChevronRight className="w-3.5 h-3.5 text-emerald-300/50 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
                 )}
-              </a>
+              </Link>
             );
           })}
 
           {/* Logout Button */}
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-emerald-100/75 hover:text-rose-300 hover:bg-rose-500/10 transition-all text-xs sm:text-[13px] font-medium group cursor-pointer mt-1"
           >
             <LogOut className="w-4 h-4 text-emerald-300/70 group-hover:text-rose-400 transition-colors" />
@@ -165,6 +167,12 @@ export default function Sidebar({ isOpen, onClose }) {
           </div>
         </div>
       </aside>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+      />
     </>
   );
 }

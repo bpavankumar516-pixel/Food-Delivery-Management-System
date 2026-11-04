@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Store, Utensils, ShoppingBag, Clock, CheckCircle2, Users, ArrowUpRight } from 'lucide-react';
 import { useDashboard } from '../../context/DashboardContext';
 
 export default function StatCards() {
   const { stats } = useDashboard();
+  const navigate = useNavigate();
 
   const cardData = [
     {
@@ -17,6 +19,7 @@ export default function StatCards() {
       trendColor: 'text-emerald-600',
       sparklineColor: '#10b981',
       sparkPath: 'M0,25 C15,22 25,28 35,20 C45,12 55,22 65,14 C75,8 85,14 100,2',
+      link: '/restaurants',
     },
     {
       id: 'food_items',
@@ -81,13 +84,18 @@ export default function StatCards() {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-3.5">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-3.5 select-none">
       {cardData.map((card) => {
         const Icon = card.icon;
         return (
           <div
             key={card.id}
-            className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-2xs hover:shadow-md transition-all duration-200 h-full flex flex-col justify-between group"
+            onClick={() => {
+              if (card.link) navigate(card.link);
+            }}
+            className={`bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-2xs hover:shadow-md transition-all duration-200 h-full flex flex-col justify-between group ${
+              card.link ? 'cursor-pointer hover:border-emerald-200' : ''
+            }`}
           >
             {/* Top row: Icon container */}
             <div className="flex items-center justify-between mb-2 sm:mb-2.5">

@@ -1,54 +1,58 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext(null);
 
 // Pre-seeded demo credentials for instant testing
 const DEFAULT_USERS = [
   {
-    id: 'usr_admin_001',
-    name: 'Pavan Kumar',
-    email: 'admin@foodix.com',
-    password: 'password123',
-    role: 'Admin',
-    phone: '+91 98765 43210',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
-    title: 'Foodix Chief Administrator',
-    createdAt: '2026-01-10T08:00:00Z',
+    id: "usr_admin_001",
+    name: "Pavan Kumar",
+    email: "admin@foodix.com",
+    password: "password123",
+    role: "Admin",
+    phone: "+91 98765 43210",
+    avatar:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200",
+    title: "Foodix Chief Administrator",
+    createdAt: "2026-01-10T08:00:00Z",
   },
   {
-    id: 'usr_rest_002',
-    name: 'Mario Rossi',
-    email: 'restaurant@foodix.com',
-    password: 'password123',
-    role: 'Restaurant',
-    restaurantName: 'Bella Vista Trattoria',
-    phone: '+1 (555) 014-9988',
-    avatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&q=80&w=200',
-    title: 'Head Chef & Owner',
-    createdAt: '2026-02-15T10:30:00Z',
+    id: "usr_rest_002",
+    name: "Mario Rossi",
+    email: "restaurant@foodix.com",
+    password: "password123",
+    role: "Restaurant",
+    restaurantName: "Bella Vista Trattoria",
+    phone: "+1 (555) 014-9988",
+    avatar:
+      "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&q=80&w=200",
+    title: "Head Chef & Owner",
+    createdAt: "2026-02-15T10:30:00Z",
   },
   {
-    id: 'usr_rider_003',
-    name: 'Alex Chen',
-    email: 'delivery@foodix.com',
-    password: 'password123',
-    role: 'Delivery Partner',
-    vehicle: 'Electric Scooter (FDX-99)',
-    phone: '+1 (555) 018-7722',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
-    title: 'Top Rated Courier (4.9★)',
-    createdAt: '2026-03-01T12:00:00Z',
+    id: "usr_rider_003",
+    name: "Alex Chen",
+    email: "delivery@foodix.com",
+    password: "password123",
+    role: "Delivery Partner",
+    vehicle: "Electric Scooter (FDX-99)",
+    phone: "+1 (555) 018-7722",
+    avatar:
+      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200",
+    title: "Top Rated Courier (4.9★)",
+    createdAt: "2026-03-01T12:00:00Z",
   },
   {
-    id: 'usr_cust_004',
-    name: 'Emily Watson',
-    email: 'customer@foodix.com',
-    password: 'password123',
-    role: 'Customer',
-    phone: '+1 (555) 012-3456',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200',
-    title: 'Foodie Club VIP',
-    createdAt: '2026-03-20T14:15:00Z',
+    id: "usr_cust_004",
+    name: "Emily Watson",
+    email: "customer@foodix.com",
+    password: "password123",
+    role: "Customer",
+    phone: "+1 (555) 012-3456",
+    avatar:
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200",
+    title: "Foodie Club VIP",
+    createdAt: "2026-03-20T14:15:00Z",
   },
 ];
 
@@ -61,35 +65,48 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     try {
       // Sync Admin name to Pavan Kumar in localStorage
-      const storedUsers = localStorage.getItem('foodix_registered_users');
+      const storedUsers = localStorage.getItem("foodix_registered_users");
       if (storedUsers) {
         try {
           const parsed = JSON.parse(storedUsers);
-          const adminIdx = parsed.findIndex((u) => u.role === 'Admin');
-          if (adminIdx !== -1 && parsed[adminIdx].name !== 'Pavan Kumar') {
-            parsed[adminIdx].name = 'Pavan Kumar';
-            parsed[adminIdx].title = 'Foodix Chief Administrator';
-            localStorage.setItem('foodix_registered_users', JSON.stringify(parsed));
+          const adminIdx = parsed.findIndex((u) => u.role === "Admin");
+          if (adminIdx !== -1 && parsed[adminIdx].name !== "Pavan Kumar") {
+            parsed[adminIdx].name = "Pavan Kumar";
+            parsed[adminIdx].title = "Foodix Chief Administrator";
+            localStorage.setItem(
+              "foodix_registered_users",
+              JSON.stringify(parsed),
+            );
           }
         } catch {
-          localStorage.setItem('foodix_registered_users', JSON.stringify(DEFAULT_USERS));
+          localStorage.setItem(
+            "foodix_registered_users",
+            JSON.stringify(DEFAULT_USERS),
+          );
         }
       } else {
-        localStorage.setItem('foodix_registered_users', JSON.stringify(DEFAULT_USERS));
+        localStorage.setItem(
+          "foodix_registered_users",
+          JSON.stringify(DEFAULT_USERS),
+        );
       }
 
       // Check for existing active session
-      const storedSessionUser = localStorage.getItem('foodix_auth_user');
-      const storedToken = localStorage.getItem('foodix_token');
+      const storedSessionUser = localStorage.getItem("foodix_auth_user");
+      const storedToken = localStorage.getItem("foodix_token");
 
       if (storedSessionUser && storedToken) {
         try {
           const parsedSession = JSON.parse(storedSessionUser);
-          if (parsedSession.role === 'Admin') {
-            parsedSession.name = 'Pavan Kumar';
-            parsedSession.title = 'Foodix Chief Administrator';
-            parsedSession.avatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200';
-            localStorage.setItem('foodix_auth_user', JSON.stringify(parsedSession));
+          if (parsedSession.role === "Admin") {
+            parsedSession.name = "Pavan Kumar";
+            parsedSession.title = "Foodix Chief Administrator";
+            parsedSession.avatar =
+              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200";
+            localStorage.setItem(
+              "foodix_auth_user",
+              JSON.stringify(parsedSession),
+            );
           }
           setUser(parsedSession);
           setToken(storedToken);
@@ -99,7 +116,7 @@ export function AuthProvider({ children }) {
         }
       }
     } catch (error) {
-      console.error('Failed to restore session:', error);
+      console.error("Failed to restore session:", error);
     } finally {
       setIsLoading(false);
     }
@@ -108,15 +125,16 @@ export function AuthProvider({ children }) {
   // Helper to fetch all registered users
   const getRegisteredUsers = () => {
     try {
-      const stored = localStorage.getItem('foodix_registered_users');
+      const stored = localStorage.getItem("foodix_registered_users");
       if (!stored) return DEFAULT_USERS;
       const parsed = JSON.parse(stored);
-      const adminIdx = parsed.findIndex((u) => u.role === 'Admin');
+      const adminIdx = parsed.findIndex((u) => u.role === "Admin");
       if (adminIdx !== -1) {
-        parsed[adminIdx].name = 'Pavan Kumar';
-        parsed[adminIdx].title = 'Foodix Chief Administrator';
-        parsed[adminIdx].avatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200';
-        localStorage.setItem('foodix_registered_users', JSON.stringify(parsed));
+        parsed[adminIdx].name = "Pavan Kumar";
+        parsed[adminIdx].title = "Foodix Chief Administrator";
+        parsed[adminIdx].avatar =
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200";
+        localStorage.setItem("foodix_registered_users", JSON.stringify(parsed));
       }
       return parsed;
     } catch {
@@ -137,10 +155,10 @@ export function AuthProvider({ children }) {
         const foundUser = users.find((u) => {
           const userEmail = u.email.toLowerCase();
           if (
-            (normalizedEmail === 'admin@foodix.com' ||
-              normalizedEmail === 'pavan@foodix.com' ||
-              normalizedEmail === 'pavan') &&
-            u.role === 'Admin'
+            (normalizedEmail === "admin@foodix.com" ||
+              normalizedEmail === "pavan@foodix.com" ||
+              normalizedEmail === "pavan") &&
+            u.role === "Admin"
           ) {
             return true;
           }
@@ -149,14 +167,14 @@ export function AuthProvider({ children }) {
 
         if (!foundUser) {
           setIsLoading(false);
-          reject(new Error('No account found with this email address.'));
+          reject(new Error("No account found with this email address."));
           return;
         }
 
         // Validate password
         if (foundUser.password !== password) {
           setIsLoading(false);
-          reject(new Error('Incorrect password. Please verify and try again.'));
+          reject(new Error("Incorrect password. Please verify and try again."));
           return;
         }
 
@@ -172,16 +190,19 @@ export function AuthProvider({ children }) {
         // Save session
         setUser(authenticatedUser);
         setToken(mockToken);
-        localStorage.setItem('foodix_auth_user', JSON.stringify(authenticatedUser));
-        localStorage.setItem('foodix_token', mockToken);
+        localStorage.setItem(
+          "foodix_auth_user",
+          JSON.stringify(authenticatedUser),
+        );
+        localStorage.setItem("foodix_token", mockToken);
 
         // Handle remember me
         if (rememberMe) {
-          localStorage.setItem('foodix_remember_email', normalizedEmail);
-          localStorage.setItem('foodix_remember_role', authenticatedUser.role);
+          localStorage.setItem("foodix_remember_email", normalizedEmail);
+          localStorage.setItem("foodix_remember_role", authenticatedUser.role);
         } else {
-          localStorage.removeItem('foodix_remember_email');
-          localStorage.removeItem('foodix_remember_role');
+          localStorage.removeItem("foodix_remember_email");
+          localStorage.removeItem("foodix_remember_role");
         }
 
         setIsLoading(false);
@@ -191,17 +212,24 @@ export function AuthProvider({ children }) {
   };
 
   // Google Single Sign-on Simulation
-  const loginWithGoogle = async (selectedRole = 'Admin') => {
+  const loginWithGoogle = async (selectedRole = "Admin") => {
     setIsLoading(true);
     return new Promise((resolve) => {
       setTimeout(() => {
         const googleUser = {
           id: `usr_google_${Date.now()}`,
-          name: selectedRole === 'Admin' ? 'Pavan Kumar' : 'Google User',
-          email: selectedRole === 'Admin' ? 'admin@foodix.com' : 'user.google@gmail.com',
+          name: selectedRole === "Admin" ? "Pavan Kumar" : "Google User",
+          email:
+            selectedRole === "Admin"
+              ? "admin@foodix.com"
+              : "user.google@gmail.com",
           role: selectedRole,
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
-          title: selectedRole === 'Admin' ? 'Foodix Chief Administrator' : 'Google Verified Member',
+          avatar:
+            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200",
+          title:
+            selectedRole === "Admin"
+              ? "Foodix Chief Administrator"
+              : "Google Verified Member",
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
         };
@@ -209,8 +237,8 @@ export function AuthProvider({ children }) {
 
         setUser(googleUser);
         setToken(mockToken);
-        localStorage.setItem('foodix_auth_user', JSON.stringify(googleUser));
-        localStorage.setItem('foodix_token', mockToken);
+        localStorage.setItem("foodix_auth_user", JSON.stringify(googleUser));
+        localStorage.setItem("foodix_token", mockToken);
 
         setIsLoading(false);
         resolve(googleUser);
@@ -230,7 +258,9 @@ export function AuthProvider({ children }) {
         // Check for duplicates
         if (users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
           setIsLoading(false);
-          reject(new Error('An account with this email address already exists.'));
+          reject(
+            new Error("An account with this email address already exists."),
+          );
           return;
         }
 
@@ -239,22 +269,25 @@ export function AuthProvider({ children }) {
           name: userData.name.trim(),
           email: normalizedEmail,
           password: userData.password,
-          role: userData.role || 'Admin',
-          phone: userData.phone || '+1 (555) 000-0000',
+          role: userData.role || "Admin",
+          phone: userData.phone || "+1 (555) 000-0000",
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.name)}`,
-          title: `${userData.role || 'Member'} at Foodix`,
+          title: `${userData.role || "Member"} at Foodix`,
           createdAt: new Date().toISOString(),
         };
 
         const updatedUsers = [...users, newUser];
-        localStorage.setItem('foodix_registered_users', JSON.stringify(updatedUsers));
+        localStorage.setItem(
+          "foodix_registered_users",
+          JSON.stringify(updatedUsers),
+        );
 
         // Auto login on register
         const mockToken = `fdx_jwt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         setUser(newUser);
         setToken(mockToken);
-        localStorage.setItem('foodix_auth_user', JSON.stringify(newUser));
-        localStorage.setItem('foodix_token', mockToken);
+        localStorage.setItem("foodix_auth_user", JSON.stringify(newUser));
+        localStorage.setItem("foodix_token", mockToken);
 
         setIsLoading(false);
         resolve(newUser);
@@ -270,16 +303,18 @@ export function AuthProvider({ children }) {
       setTimeout(() => {
         const users = getRegisteredUsers();
         const normalizedEmail = email.trim().toLowerCase();
-        const index = users.findIndex((u) => u.email.toLowerCase() === normalizedEmail);
+        const index = users.findIndex(
+          (u) => u.email.toLowerCase() === normalizedEmail,
+        );
 
         if (index === -1) {
           setIsLoading(false);
-          reject(new Error('No account found with this email.'));
+          reject(new Error("No account found with this email."));
           return;
         }
 
         users[index].password = newPassword;
-        localStorage.setItem('foodix_registered_users', JSON.stringify(users));
+        localStorage.setItem("foodix_registered_users", JSON.stringify(users));
 
         setIsLoading(false);
         resolve(true);
@@ -291,14 +326,16 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('foodix_auth_user');
-    localStorage.removeItem('foodix_token');
+    localStorage.removeItem("foodix_auth_user");
+    localStorage.removeItem("foodix_token");
   };
 
   // Quick helper to fill demo account
-  const getDemoAccount = (role = 'Admin') => {
+  const getDemoAccount = (role = "Admin") => {
     const users = getRegisteredUsers();
-    return users.find((u) => u.role.toLowerCase() === role.toLowerCase()) || users[0];
+    return (
+      users.find((u) => u.role.toLowerCase() === role.toLowerCase()) || users[0]
+    );
   };
 
   return (
@@ -325,7 +362,7 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

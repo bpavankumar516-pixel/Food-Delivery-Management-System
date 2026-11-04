@@ -4,9 +4,13 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { RestaurantProvider } from './context/RestaurantContext';
+import { DashboardProvider } from './context/DashboardContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import RestaurantsPage from './pages/RestaurantsPage';
+import RestaurantDetailsPage from './pages/RestaurantDetailsPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 function RootRedirect() {
@@ -18,43 +22,63 @@ function RootRedirect() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Default Route */}
-          <Route path="/" element={<RootRedirect />} />
+      <RestaurantProvider>
+        <DashboardProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Default Route */}
+              <Route path="/" element={<RootRedirect />} />
 
-          {/* Authentication Routes (Module 1) */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+              {/* Authentication Routes (Module 1) */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected Destination */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
+              {/* Protected Application Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/restaurants"
+                element={
+                  <ProtectedRoute>
+                    <RestaurantsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/restaurants/:id"
+                element={
+                  <ProtectedRoute>
+                    <RestaurantDetailsPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Fallback */}
-          <Route path="*" element={<RootRedirect />} />
-        </Routes>
+              {/* Fallback */}
+              <Route path="*" element={<RootRedirect />} />
+            </Routes>
 
-        {/* Global Toast Notifications */}
-        <ToastContainer
-          position="top-right"
-          autoClose={3500}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
-      </BrowserRouter>
+            {/* Global Toast Notifications */}
+            <ToastContainer
+              position="top-right"
+              autoClose={3500}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
+            />
+          </BrowserRouter>
+        </DashboardProvider>
+      </RestaurantProvider>
     </AuthProvider>
   );
 }

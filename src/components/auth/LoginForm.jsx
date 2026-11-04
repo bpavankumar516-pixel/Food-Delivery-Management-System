@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Mail,
   Lock,
@@ -13,20 +13,20 @@ import {
   Bike,
   Users,
   Sparkles,
-} from 'lucide-react';
-import { toast } from 'react-toastify';
-import { useAuth } from '../../context/AuthContext';
-import Logo from '../common/Logo';
-import LanguageDropdown from './LanguageDropdown';
-import HelpModal from './HelpModal';
-import ForgotPasswordModal from './ForgotPasswordModal';
+} from "lucide-react";
+import { toast } from "react-toastify";
+import { useAuth } from "../../context/AuthContext";
+import Logo from "../common/Logo";
+import LanguageDropdown from "./LanguageDropdown";
+import HelpModal from "./HelpModal";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 export default function LoginForm() {
   const navigate = useNavigate();
   const { login, loginWithGoogle, getDemoAccount } = useAuth();
 
-  // 4 Roles: Admin | Restaurant | Delivery Partner | Customer
-  const [selectedRole, setSelectedRole] = useState('Admin');
+  // Role: Admin active (other roles commented out below)
+  const [selectedRole, setSelectedRole] = useState("Admin");
   const [showPassword, setShowPassword] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isForgotOpen, setIsForgotOpen] = useState(false);
@@ -40,40 +40,40 @@ export default function LoginForm() {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
       rememberMe: true,
     },
   });
 
-  const watchedEmail = watch('email');
+  const watchedEmail = watch("email");
 
   useEffect(() => {
-    const rememberedEmail = localStorage.getItem('foodix_remember_email');
-    const rememberedRole = localStorage.getItem('foodix_remember_role');
+    const rememberedEmail = localStorage.getItem("foodix_remember_email");
+    const rememberedRole = localStorage.getItem("foodix_remember_role");
 
     if (rememberedEmail) {
-      setValue('email', rememberedEmail);
-      setValue('rememberMe', true);
+      setValue("email", rememberedEmail);
+      setValue("rememberMe", true);
     }
     if (rememberedRole) {
       setSelectedRole(rememberedRole);
     } else {
       // Default to Admin demo credentials for immediate testing
-      const demo = getDemoAccount('Admin');
+      const demo = getDemoAccount("Admin");
       if (demo) {
-        setValue('email', demo.email);
-        setValue('password', demo.password);
+        setValue("email", demo.email);
+        setValue("password", demo.password);
       }
     }
   }, [setValue]);
 
-  const handleSelectRole = (role) => {
+  const handleSelectRole = (role = "Admin") => {
     setSelectedRole(role);
     const demo = getDemoAccount(role);
     if (demo) {
-      setValue('email', demo.email);
-      setValue('password', demo.password);
+      setValue("email", demo.email);
+      setValue("password", demo.password);
     }
   };
 
@@ -88,9 +88,11 @@ export default function LoginForm() {
       });
 
       toast.success(`Welcome back, ${user.name}! Logged in as ${user.role}.`);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
-      toast.error(error.message || 'Invalid email or password. Please try again.');
+      toast.error(
+        error.message || "Invalid email or password. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -101,9 +103,9 @@ export default function LoginForm() {
       setIsSubmitting(true);
       const user = await loginWithGoogle(selectedRole);
       toast.success(`Google authentication successful! Welcome, ${user.name}.`);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch {
-      toast.error('Google login failed. Please try again.');
+      toast.error("Google login failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -113,7 +115,6 @@ export default function LoginForm() {
     <div className="w-full flex justify-center items-center py-1 sm:py-2 px-1 sm:px-2 relative z-10">
       {/* Floating White Card (Optimized for 30% width column & 100vh fit without scrollbar) */}
       <div className="w-full max-w-[455px] xl:max-w-[475px] bg-white rounded-[26px] sm:rounded-[30px] shadow-2xl shadow-slate-900/10 border border-slate-100 p-5 sm:p-6 lg:p-5.5 xl:p-6 relative overflow-hidden backdrop-blur-xs">
-        
         {/* Top Header Utilities inside Card */}
         <div className="flex items-center justify-end gap-2.5 mb-2 select-none">
           <button
@@ -132,7 +133,12 @@ export default function LoginForm() {
 
         {/* Brand Logo (Centered) */}
         <div className="flex flex-col items-center mb-2">
-          <Logo theme="dark" size="normal" showSubtitle={true} className="flex-col items-center text-center gap-1" />
+          <Logo
+            theme="dark"
+            size="normal"
+            showSubtitle={true}
+            className="flex-col items-center text-center gap-1"
+          />
         </div>
 
         {/* Headings */}
@@ -145,13 +151,13 @@ export default function LoginForm() {
           </p>
         </div>
 
-        {/* 4 Role Selector Tabs: Admin | Restaurant | Delivery | Customer */}
-        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/90 rounded-2xl mb-2.5 border border-slate-200/60 select-none">
+        {/* Role Selector: Admin active, other roles commented out with // */}
+        <div className="flex items-center justify-center p-1 bg-slate-100/90 rounded-2xl mb-2.5 border border-slate-200/60 select-none">
           {[
-            { id: 'Admin', label: 'Admin', icon: UserCheck },
-            { id: 'Restaurant', label: 'Restaurant', icon: Store },
-            { id: 'Delivery Partner', label: 'Delivery', icon: Bike },
-            { id: 'Customer', label: 'Customer', icon: Users },
+            { id: "Admin", label: "Admin", icon: UserCheck },
+            // { id: "Restaurant", label: "Restaurant", icon: Store },
+            // { id: "Delivery Partner", label: "Delivery", icon: Bike },
+            { id: "Customer", label: "Customer", icon: Users },
           ].map((tab) => {
             const Icon = tab.icon;
             const isSelected = selectedRole === tab.id;
@@ -160,14 +166,14 @@ export default function LoginForm() {
                 key={tab.id}
                 type="button"
                 onClick={() => handleSelectRole(tab.id)}
-                className={`flex items-center justify-center gap-1 py-1.5 px-0.5 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all duration-200 cursor-pointer ${
+                className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? 'bg-[#0e4d3a] text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    ? "bg-[#0e4d3a] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                 }`}
               >
-                <Icon className="w-3 h-3 shrink-0" />
-                <span className="truncate">{tab.label}</span>
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -178,7 +184,8 @@ export default function LoginForm() {
           <div className="flex items-center gap-1.5 text-emerald-800">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span className="text-[10.5px] sm:text-[11px] font-medium truncate">
-              Mode: <span className="font-bold">{selectedRole}</span> demo ready
+              Mode: <span className="font-bold">{selectedRole}</span>{" "}
+              credentials ready
             </span>
           </div>
           <button
@@ -203,23 +210,25 @@ export default function LoginForm() {
               </div>
               <input
                 type="email"
-                {...register('email', {
-                  required: 'Email address is required',
+                {...register("email", {
+                  required: "Email address is required",
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Please enter a valid email address',
+                    message: "Please enter a valid email address",
                   },
                 })}
                 placeholder="Enter your email"
                 className={`w-full pl-9 pr-3 py-1.5 sm:py-2 bg-white border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-all ${
                   errors.email
-                    ? 'border-rose-400 focus:ring-2 focus:ring-rose-400/20'
-                    : 'border-slate-200 hover:border-slate-300 focus:border-[#0e4d3a] focus:ring-2 focus:ring-[#0e4d3a]/15'
+                    ? "border-rose-400 focus:ring-2 focus:ring-rose-400/20"
+                    : "border-slate-200 hover:border-slate-300 focus:border-[#0e4d3a] focus:ring-2 focus:ring-[#0e4d3a]/15"
                 }`}
               />
             </div>
             {errors.email && (
-              <p className="mt-0.5 text-[10px] text-rose-500 font-medium">{errors.email.message}</p>
+              <p className="mt-0.5 text-[10px] text-rose-500 font-medium">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -233,26 +242,26 @@ export default function LoginForm() {
                 <Lock className="w-3.5 h-3.5" />
               </div>
               <input
-                type={showPassword ? 'text' : 'password'}
-                {...register('password', {
-                  required: 'Password is required',
+                type={showPassword ? "text" : "password"}
+                {...register("password", {
+                  required: "Password is required",
                   minLength: {
                     value: 6,
-                    message: 'Password must be at least 6 characters',
+                    message: "Password must be at least 6 characters",
                   },
                 })}
                 placeholder="Enter your password"
                 className={`w-full pl-9 pr-10 py-1.5 sm:py-2 bg-white border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-all ${
                   errors.password
-                    ? 'border-rose-400 focus:ring-2 focus:ring-rose-400/20'
-                    : 'border-slate-200 hover:border-slate-300 focus:border-[#0e4d3a] focus:ring-2 focus:ring-[#0e4d3a]/15'
+                    ? "border-rose-400 focus:ring-2 focus:ring-rose-400/20"
+                    : "border-slate-200 hover:border-slate-300 focus:border-[#0e4d3a] focus:ring-2 focus:ring-[#0e4d3a]/15"
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <EyeOff className="w-3.5 h-3.5 text-slate-500" />
@@ -262,7 +271,9 @@ export default function LoginForm() {
               </button>
             </div>
             {errors.password && (
-              <p className="mt-0.5 text-[10px] text-rose-500 font-medium">{errors.password.message}</p>
+              <p className="mt-0.5 text-[10px] text-rose-500 font-medium">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
@@ -271,7 +282,7 @@ export default function LoginForm() {
             <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 hover:text-slate-800">
               <input
                 type="checkbox"
-                {...register('rememberMe')}
+                {...register("rememberMe")}
                 className="w-3.5 h-3.5 text-orange-500 border-slate-300 rounded focus:ring-orange-400 cursor-pointer accent-orange-500"
               />
               <span className="font-medium text-[11px]">Remember me</span>
@@ -309,7 +320,9 @@ export default function LoginForm() {
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
-            <span className="bg-white px-2.5 text-slate-400 font-semibold">OR</span>
+            <span className="bg-white px-2.5 text-slate-400 font-semibold">
+              OR
+            </span>
           </div>
         </div>
 
@@ -354,7 +367,11 @@ export default function LoginForm() {
 
         {/* Subtle Decorative Mint Scooter Sketch in Bottom-Right Corner of Card */}
         <div className="absolute -bottom-3 -right-3 w-28 h-28 text-emerald-600/10 pointer-events-none z-0">
-          <svg viewBox="0 0 200 200" fill="currentColor" className="w-full h-full">
+          <svg
+            viewBox="0 0 200 200"
+            fill="currentColor"
+            className="w-full h-full"
+          >
             <path d="M40,140 A20,20 0 1,0 80,140 A20,20 0 1,0 40,140 M140,140 A20,20 0 1,0 180,140 A20,20 0 1,0 140,140 M80,130 L110,130 L130,90 L95,90 Z M130,90 L145,50 L165,50 M110,60 A12,12 0 1,1 110,36 A12,12 0 1,1 110,60" />
           </svg>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { DashboardProvider, useDashboard } from '../context/DashboardContext';
+import { useDashboard } from '../context/DashboardContext';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import StatCards from '../components/dashboard/StatCards';
@@ -13,17 +13,19 @@ import QuickActions from '../components/dashboard/QuickActions';
 
 // Interactive Modals
 import OrderDetailsModal from '../components/dashboard/modals/OrderDetailsModal';
-import AddRestaurantModal from '../components/dashboard/modals/AddRestaurantModal';
+import AddRestaurantModal from '../components/restaurants/AddRestaurantModal';
 import AddMenuItemModal from '../components/dashboard/modals/AddMenuItemModal';
 import ApplyCouponModal from '../components/dashboard/modals/ApplyCouponModal';
 import ReportsModal from '../components/dashboard/modals/ReportsModal';
+import AllActivitiesModal from '../components/dashboard/modals/AllActivitiesModal';
 
-function DashboardContent() {
+export default function DashboardPage() {
   const { user } = useAuth();
+  const { isAllActivitiesOpen, setIsAllActivitiesOpen } = useDashboard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-[#f8faf9] text-slate-800 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#f8faf9] text-slate-800 overflow-hidden font-sans select-none">
       {/* Dark Emerald Sidebar (Sticky on Desktop, Drawer on Mobile) */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -95,14 +97,10 @@ function DashboardContent() {
       <AddMenuItemModal />
       <ApplyCouponModal />
       <ReportsModal />
+      <AllActivitiesModal
+        isOpen={isAllActivitiesOpen}
+        onClose={() => setIsAllActivitiesOpen(false)}
+      />
     </div>
-  );
-}
-
-export default function DashboardPage() {
-  return (
-    <DashboardProvider>
-      <DashboardContent />
-    </DashboardProvider>
   );
 }
