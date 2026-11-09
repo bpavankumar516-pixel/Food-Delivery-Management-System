@@ -11,9 +11,21 @@ const DEFAULT_USERS = [
     password: "password123",
     role: "Admin",
     phone: "+91 98765 43210",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200",
+    useCustomAvatar: false, // Default name-based letter avatar
+    avatarGradient: "orange",
+    avatar: null,
     title: "Foodix Chief Administrator",
+    department: "Platform Operations & Quality Assurance",
+    location: "Bengaluru, Karnataka, India",
+    bio: "Chief Platform Administrator responsible for restaurant onboarding, culinary catalog quality, merchant settlements, and operational delivery standards across Foodix.",
+    joinDate: "January 2024",
+    twoFactorEnabled: true,
+    notifications: {
+      emailAlerts: true,
+      orderUpdates: true,
+      restaurantApprovals: true,
+      systemHealth: true,
+    },
     createdAt: "2026-01-10T08:00:00Z",
   },
   {
@@ -101,8 +113,12 @@ export function AuthProvider({ children }) {
           if (parsedSession.role === "Admin") {
             parsedSession.name = "Pavan Kumar";
             parsedSession.title = "Foodix Chief Administrator";
-            parsedSession.avatar =
-              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200";
+            if (parsedSession.useCustomAvatar === undefined) {
+              parsedSession.useCustomAvatar = false;
+            }
+            if (!parsedSession.avatarGradient) {
+              parsedSession.avatarGradient = "orange";
+            }
             localStorage.setItem(
               "foodix_auth_user",
               JSON.stringify(parsedSession),
@@ -322,6 +338,72 @@ export function AuthProvider({ children }) {
     });
   };
 
+  // Update Profile (Real-time dynamic profile updates across platform)
+  const updateProfile = async (updatedData) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const updatedUser = {
+          ...user,
+          ...updatedData,
+        };
+        setUser(updatedUser);
+        localStorage.setItem("foodix_auth_user", JSON.stringify(updatedUser));
+
+        // Update in registered users list
+        try {
+          const stored = localStorage.getItem("foodix_registered_users");
+          if (stored) {
+            const users = JSON.parse(stored);
+            const idx = users.findIndex(
+              (u) => u.id === updatedUser.id || u.email === updatedUser.email
+            );
+            if (idx !== -1) {
+              users[idx] = { ...users[idx], ...updatedUser };
+              localStorage.setItem("foodix_registered_users", JSON.stringify(users));
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to update user in registered users list", e);
+        }
+
+        resolve(updatedUser);
+      }, 300);
+    });
+  };
+
+  // Change Password with current password verification
+  const changePassword = async (currentPassword, newPassword) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          const stored = localStorage.getItem("foodix_registered_users");
+          const users = stored ? JSON.parse(stored) : DEFAULT_USERS;
+          const idx = users.findIndex(
+            (u) => u.id === user?.id || u.email === user?.email
+          );
+
+          if (idx !== -1 && users[idx].password !== currentPassword) {
+            reject(new Error("Current password does not match."));
+            return;
+          }
+
+          if (idx !== -1) {
+            users[idx].password = newPassword;
+            localStorage.setItem("foodix_registered_users", JSON.stringify(users));
+          }
+
+          const updatedUser = { ...user, password: newPassword };
+          setUser(updatedUser);
+          localStorage.setItem("foodix_auth_user", JSON.stringify(updatedUser));
+
+          resolve(true);
+        } catch (err) {
+          reject(err);
+        }
+      }, 400);
+    });
+  };
+
   // Logout handler
   const logout = () => {
     setUser(null);
@@ -349,6 +431,8 @@ export function AuthProvider({ children }) {
         loginWithGoogle,
         register,
         resetPassword,
+        updateProfile,
+        changePassword,
         logout,
         getDemoAccount,
         DEFAULT_USERS,

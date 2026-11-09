@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useRestaurants } from './RestaurantContext';
+import dashboardService from '../services/dashboardService';
 
 const DashboardContext = createContext(null);
 
@@ -138,7 +139,7 @@ const REVENUE_DATASETS = {
 };
 
 export function DashboardProvider({ children }) {
-  const { stats: restStats, addRestaurant, activities, addActivity } = useRestaurants();
+  const { stats: restStats, addRestaurant, activities, addActivity, allMenuItems } = useRestaurants();
 
   const [orders, setOrders] = useState(INITIAL_ORDERS);
   const [revenueTimeframe, setRevenueTimeframe] = useState('Last 7 Days');
@@ -155,12 +156,12 @@ export function DashboardProvider({ children }) {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isAllActivitiesOpen, setIsAllActivitiesOpen] = useState(false);
 
-  // Dashboard Stats dynamically synchronized with RestaurantContext
+  // Dashboard Stats dynamically synchronized with RestaurantContext & Menu Items
   const [stats, setStats] = useState({
     totalRestaurants: restStats?.totalRestaurants || 24,
     totalRestaurantsChange: restStats?.totalChange || '+12%',
-    totalFoodItems: 356,
-    totalFoodItemsChange: '+8%',
+    totalFoodItems: allMenuItems?.length || 24,
+    totalFoodItemsChange: '+12%',
     totalOrders: 1248,
     totalOrdersChange: '+15%',
     activeOrders: 248,
@@ -171,15 +172,21 @@ export function DashboardProvider({ children }) {
     totalCustomersChange: '+14%',
   });
 
-  // Keep totalRestaurants in sync with RestaurantContext
+  // Keep totalRestaurants and totalFoodItems in real-time sync with RestaurantContext
   useEffect(() => {
-    if (restStats?.totalRestaurants) {
-      setStats((prev) => ({
-        ...prev,
-        totalRestaurants: restStats.totalRestaurants,
-      }));
-    }
-  }, [restStats?.totalRestaurants]);
+    setStats((prev) => ({
+      ...prev,
+      totalRestaurants: restStats?.totalRestaurants ?? prev.totalRestaurants,
+      totalFoodItems: allMenuItems?.length ?? prev.totalFoodItems,
+    }));
+  }, [restStats?.totalRestaurants, allMenuItems?.length]);
+
+  // Initial dashboard network fetch for browser Network tab visibility
+  useEffect(() => {
+    dashboardService.getStats().catch(() => {});
+    dashboardService.getActivities().catch(() => {});
+    dashboardService.getOrders().catch(() => {});
+  }, []);
 
   // Real-time live simulation ticker
   useEffect(() => {

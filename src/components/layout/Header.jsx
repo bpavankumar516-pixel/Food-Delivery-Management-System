@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, Shield, LogOut, MessageSquare, X } from 'lucide-react';
+import { Search, Bell, Menu, Shield, LogOut, MessageSquare, X, User, Settings, ChevronRight } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useDashboard } from '../../context/DashboardContext';
 import { useRestaurants } from '../../context/RestaurantContext';
 import LogoutModal from '../common/LogoutModal';
+import UserAvatar from '../common/UserAvatar';
 
 export default function Header({ onMenuClick }) {
   const { user } = useAuth();
@@ -131,7 +132,7 @@ export default function Header({ onMenuClick }) {
               <MessageSquare className="w-4.5 h-4.5 text-slate-700" />
             </button>
 
-            {/* User Profile matching reference: Avatar + Name + Super Administrator */}
+            {/* User Profile: Name-Based Letter Avatar by default + Name + Super Administrator */}
             <div className="relative">
               <button
                 type="button"
@@ -139,15 +140,20 @@ export default function Header({ onMenuClick }) {
                   setIsProfileOpen(!isProfileOpen);
                   setIsNotificationsOpen(false);
                 }}
-                className="flex items-center gap-2.5 p-1 sm:p-1.5 rounded-2xl hover:bg-white/80 transition-all cursor-pointer text-left"
+                className="flex items-center gap-2.5 p-1 sm:p-1.5 rounded-2xl hover:bg-white/80 transition-all cursor-pointer text-left group"
               >
-                <img
-                  src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'}
-                  alt={user?.name || 'Admin'}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-slate-200 shadow-xs"
+                {/* Name-based letter avatar by default */}
+                <UserAvatar
+                  name={user?.name || 'Pavan Kumar'}
+                  avatar={user?.avatar}
+                  useCustomAvatar={user?.useCustomAvatar}
+                  gradient={user?.avatarGradient || 'orange'}
+                  size="md"
+                  showBadge={true}
+                  badgeStatus="online"
                 />
                 <div className="flex flex-col text-left">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 leading-tight group-hover:text-[#ff5e28] transition-colors">
                     {user?.name || 'Pavan Kumar'}
                   </span>
                   <span className="text-[10.5px] text-slate-500 font-medium leading-tight">
@@ -158,22 +164,69 @@ export default function Header({ onMenuClick }) {
 
               {/* Profile Dropdown */}
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="p-2 border-b border-slate-100 mb-1">
-                    <p className="text-xs font-bold text-slate-900">{user?.name || 'Admin'}</p>
-                    <p className="text-[11px] text-slate-500 font-mono truncate">{user?.email || 'admin@foodix.com'}</p>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-3xl shadow-2xl border border-slate-100 p-3 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-2">
+                  {/* User Profile Mini Header */}
+                  <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-slate-50 border border-slate-100/80">
+                    <UserAvatar
+                      name={user?.name || 'Pavan Kumar'}
+                      avatar={user?.avatar}
+                      useCustomAvatar={user?.useCustomAvatar}
+                      gradient={user?.avatarGradient || 'orange'}
+                      size="sm"
+                      showBadge={true}
+                    />
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'Pavan Kumar'}</p>
+                      <p className="text-[10.5px] text-slate-500 font-mono truncate">{user?.email || 'admin@foodix.com'}</p>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      setShowLogoutConfirm(true);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign out</span>
-                  </button>
+
+                  {/* Navigation Links */}
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        navigate('/profile');
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <User className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                        <span>View Profile</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        navigate('/profile?tab=security');
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Settings className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                        <span>Security & Settings</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        setShowLogoutConfirm(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

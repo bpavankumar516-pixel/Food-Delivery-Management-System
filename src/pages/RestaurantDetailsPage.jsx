@@ -34,6 +34,7 @@ import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import EditRestaurantModal from '../components/restaurants/EditRestaurantModal';
 import DeleteConfirmModal from '../components/restaurants/DeleteConfirmModal';
+import DeleteMenuConfirmModal from '../components/menu/DeleteMenuConfirmModal';
 import AddFoodItemModal from '../components/restaurants/AddFoodItemModal';
 import EditFoodItemModal from '../components/restaurants/EditFoodItemModal';
 import { useRestaurants } from '../context/RestaurantContext';
@@ -48,6 +49,7 @@ export default function RestaurantDetailsPage() {
     toggleFavorite,
     openEditModal,
     openDeleteModal,
+    openDeleteMenuModal,
     toggleItemStock,
     deleteMenuItem,
   } = useRestaurants();
@@ -110,7 +112,16 @@ export default function RestaurantDetailsPage() {
     'Desserts & Beverages',
   ];
 
-  const menuItems = getRestaurantMenu(restaurant?.id);
+  // Strictly deduplicated dynamic menu items (guarantees zero duplicate cards in UI)
+  const rawMenuItems = getRestaurantMenu(restaurant?.id) || [];
+  const seenDishKeys = new Set();
+  const menuItems = rawMenuItems.filter((item) => {
+    if (!item) return false;
+    const key = (item.name || item.id || '').toLowerCase().trim();
+    if (seenDishKeys.has(key)) return false;
+    seenDishKeys.add(key);
+    return true;
+  });
   const isPureVegRestaurant = !!restaurant?.pureVeg;
 
   // Real-time calculated dietary counts
@@ -523,7 +534,11 @@ export default function RestaurantDetailsPage() {
                           <div>
                             <div className="flex gap-3.5">
                               {/* Dish Thumbnail with Badges */}
-                              <div className="relative w-28 h-26 rounded-2xl overflow-hidden shrink-0 bg-slate-100 border border-slate-100">
+                              <div
+                                onClick={() => navigate(`/menu/${item.id}`)}
+                                className="relative w-28 h-26 rounded-2xl overflow-hidden shrink-0 bg-slate-100 border border-slate-100 cursor-pointer"
+                                title={`View details for ${item.name}`}
+                              >
                                 <img
                                   src={item.image}
                                   alt={item.name}
@@ -585,7 +600,11 @@ export default function RestaurantDetailsPage() {
                                   )}
                                 </div>
 
-                                <h4 className="font-extrabold text-sm text-slate-900 leading-tight group-hover:text-[#ff5e28] transition-colors">
+                                <h4
+                                  onClick={() => navigate(`/menu/${item.id}`)}
+                                  className="font-extrabold text-sm text-slate-900 leading-tight group-hover:text-[#ff5e28] transition-colors cursor-pointer"
+                                  title={`View details for ${item.name}`}
+                                >
                                   {item.name}
                                 </h4>
 
@@ -636,7 +655,7 @@ export default function RestaurantDetailsPage() {
                               {/* Delete Dish Button */}
                               <button
                                 type="button"
-                                onClick={() => deleteMenuItem(restaurant.id, item.id)}
+                                onClick={() => openDeleteMenuModal(item)}
                                 className="p-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                                 title="Remove dish from menu"
                               >
@@ -939,6 +958,7 @@ export default function RestaurantDetailsPage() {
       {/* Interactive Modals */}
       <EditRestaurantModal />
       <DeleteConfirmModal />
+      <DeleteMenuConfirmModal />
       <AddFoodItemModal
         isOpen={isAddDishModalOpen}
         onClose={() => setIsAddDishModalOpen(false)}

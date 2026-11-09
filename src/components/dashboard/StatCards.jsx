@@ -32,6 +32,7 @@ export default function StatCards() {
       trendColor: 'text-orange-600',
       sparklineColor: '#f97316',
       sparkPath: 'M0,22 C15,24 25,18 38,20 C50,22 60,10 75,14 C85,16 92,8 100,4',
+      link: '/menu',
     },
     {
       id: 'total_orders',

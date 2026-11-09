@@ -67,23 +67,18 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }) {
           Are you sure you want to log out of your <span className="font-semibold text-slate-700">Foodix</span> session?
         </p>
 
-        {/* User Card Preview */}
+        {/* User Card Preview (Without profile image, only user name as requested) */}
         {user && (
-          <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 mb-6 text-left">
-            <img
-              src={user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'}
-              alt={user.name || 'Admin'}
-              className="w-10 h-10 rounded-full object-cover border border-slate-200"
-            />
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200/70 mb-6 text-left">
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-900 truncate">
-                {user.name || 'Admin'}
+              <p className="text-sm font-bold text-slate-900 truncate">
+                {user.name || 'Pavan Kumar'}
               </p>
-              <p className="text-[11px] text-slate-500 truncate font-mono">
+              <p className="text-[11px] text-slate-500 truncate font-mono mt-0.5">
                 {user.email || 'admin@foodix.com'}
               </p>
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
               {user.role || 'Admin'}
             </span>
           </div>

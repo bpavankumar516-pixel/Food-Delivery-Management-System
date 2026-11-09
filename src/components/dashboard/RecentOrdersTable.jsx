@@ -4,7 +4,19 @@ import { useDashboard } from '../../context/DashboardContext';
 import { toast } from 'react-toastify';
 
 export default function RecentOrdersTable() {
-  const { orders, setSelectedOrder } = useDashboard();
+  const { orders, setSelectedOrder, searchQuery } = useDashboard();
+
+  const filteredOrders = React.useMemo(() => {
+    if (!searchQuery?.trim()) return orders;
+    const q = searchQuery.toLowerCase().trim();
+    return orders.filter(
+      (order) =>
+        order.id.toLowerCase().includes(q) ||
+        order.customer.name.toLowerCase().includes(q) ||
+        order.restaurant.toLowerCase().includes(q) ||
+        order.status.toLowerCase().includes(q)
+    );
+  }, [orders, searchQuery]);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -57,14 +69,14 @@ export default function RecentOrdersTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100/80 text-xs">
-            {orders.length === 0 ? (
+            {filteredOrders.length === 0 ? (
               <tr>
                 <td colSpan="7" className="py-8 text-center text-slate-400 font-medium">
                   No orders match your search criteria.
                 </td>
               </tr>
             ) : (
-              orders.map((order) => (
+              filteredOrders.map((order) => (
                 <tr
                   key={order.id}
                   className="hover:bg-slate-50/70 transition-colors group cursor-pointer"

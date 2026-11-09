@@ -11,6 +11,9 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import RestaurantsPage from './pages/RestaurantsPage';
 import RestaurantDetailsPage from './pages/RestaurantDetailsPage';
+import MenuManagementPage from './pages/MenuManagementPage';
+import MenuItemDetailsPage from './pages/MenuItemDetailsPage';
+import ProfilePage from './pages/ProfilePage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 function RootRedirect() {
@@ -55,6 +58,30 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <RestaurantDetailsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/menu"
+                element={
+                  <ProtectedRoute>
+                    <MenuManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/menu/:id"
+                element={
+                  <ProtectedRoute>
+                    <MenuItemDetailsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
                   </ProtectedRoute>
                 }
               />

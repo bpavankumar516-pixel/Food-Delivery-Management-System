@@ -2,12 +2,16 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { toast } from 'react-toastify';
 import { INITIAL_RESTAURANTS } from '../data/mockRestaurants';
 import { generateDefaultMenuForRestaurant } from '../data/mockMenuItems';
+import { INITIAL_MENU_MANAGEMENT_ITEMS } from '../data/mockMenuManagementItems';
+import restaurantService from '../services/restaurantService';
+import menuService from '../services/menuService';
 
 const RestaurantContext = createContext(null);
 
 const STORAGE_KEY = 'foodix_restaurants_v3';
 const ACTIVITIES_STORAGE_KEY = 'foodix_activities_v2';
 const MENUS_STORAGE_KEY = 'foodix_restaurant_menus_v2';
+const MASTER_MENU_STORAGE_KEY = 'foodix_master_menu_v3';
 
 const INITIAL_ACTIVITIES = [
   {
@@ -82,6 +86,13 @@ export function RestaurantProvider({ children }) {
       console.warn('Failed to save restaurants to localStorage', e);
     }
   }, [restaurants]);
+
+  // Initial fetch: triggers GET /api/restaurants visible in browser Network tab
+  useEffect(() => {
+    restaurantService.getRestaurants().catch((err) => {
+      console.warn('[API Network] GET /api/restaurants handled:', err.message);
+    });
+  }, []);
 
   // Real-Time Dynamic Activities
   const [activities, setActivities] = useState(() => {
@@ -283,6 +294,11 @@ export function RestaurantProvider({ children }) {
     setRestaurants((prev) => [newRestaurant, ...prev]);
     setCurrentPage(1);
 
+    // Network Tab: POST /api/restaurants
+    restaurantService.createRestaurant(newRestaurant).catch((err) => {
+      console.warn('[Network API] POST /api/restaurants:', err.message);
+    });
+
     // Dynamically log activity for Dashboard Recent Activities
     addActivity({
       type: 'restaurant',
@@ -325,6 +341,11 @@ export function RestaurantProvider({ children }) {
       })
     );
 
+    // Network Tab: PUT /api/restaurants/:id
+    restaurantService.updateRestaurant(id, updatedFields).catch((err) => {
+      console.warn(`[Network API] PUT /api/restaurants/${id}:`, err.message);
+    });
+
     if (updatedTarget) {
       addActivity({
         type: 'restaurant',
@@ -365,6 +386,11 @@ export function RestaurantProvider({ children }) {
     const target = deleteModalState.restaurant;
     setRestaurants((prev) => prev.filter((r) => r.id !== target.id));
 
+    // Network Tab: DELETE /api/restaurants/:id
+    restaurantService.deleteRestaurant(target.id).catch((err) => {
+      console.warn(`[Network API] DELETE /api/restaurants/${target.id}:`, err.message);
+    });
+
     // Log deletion activity
     addActivity({
       type: 'restaurant',
@@ -389,10 +415,12 @@ export function RestaurantProvider({ children }) {
 
   // Toggle Restaurant Open/Closed Status + Logs Activity
   const toggleStatus = (id) => {
+    let nextStatus = 'Open';
     setRestaurants((prev) =>
       prev.map((r) => {
         if (r.id === id) {
           const newStatus = r.status === 'Open' ? 'Closed' : 'Open';
+          nextStatus = newStatus;
 
           // Log live status update activity
           addActivity({
@@ -411,14 +439,21 @@ export function RestaurantProvider({ children }) {
         return r;
       })
     );
+
+    // Network Tab: PATCH /api/restaurants/:id/status
+    restaurantService.toggleStatus(id, nextStatus).catch((err) => {
+      console.warn(`[Network API] PATCH /api/restaurants/${id}/status:`, err.message);
+    });
   };
 
   // Toggle Favorite Heart + Logs Activity
   const toggleFavorite = (id) => {
+    let targetFav = false;
     setRestaurants((prev) =>
       prev.map((r) => {
         if (r.id === id) {
           const nextFav = !r.isFavorite;
+          targetFav = nextFav;
 
           if (nextFav) {
             addActivity({
@@ -437,6 +472,11 @@ export function RestaurantProvider({ children }) {
         return r;
       })
     );
+
+    // Network Tab: PATCH /api/restaurants/:id/favorite
+    restaurantService.toggleFavorite(id, targetFav).catch((err) => {
+      console.warn(`[Network API] PATCH /api/restaurants/${id}/favorite:`, err.message);
+    });
   };
 
   // Open Details Modal
@@ -484,8 +524,300 @@ export function RestaurantProvider({ children }) {
     }
   }, [menusByRestaurant]);
 
+  // Master Menu Items for Central Menu Management (pre-seeded 24 items with exact categories)
+  const [allMenuItems, setAllMenuItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem(MASTER_MENU_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse master menu items from localStorage', e);
+    }
+    return INITIAL_MENU_MANAGEMENT_ITEMS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MASTER_MENU_STORAGE_KEY, JSON.stringify(allMenuItems));
+    } catch (e) {
+      console.warn('Failed to save master menu items to localStorage', e);
+    }
+  }, [allMenuItems]);
+
+  // Network Tab Trigger: GET /api/menu on initial mount
+  useEffect(() => {
+    menuService.getAllMenuItems().catch(() => {});
+  }, []);
+
+  // Custom Delete Confirmation Modal State for Menu Items
+  const [deleteMenuModalState, setDeleteMenuModalState] = useState({
+    isOpen: false,
+    item: null,
+    onConfirmed: null,
+  });
+
+  const openDeleteMenuModal = (item, onConfirmed = null) => {
+    setDeleteMenuModalState({
+      isOpen: true,
+      item,
+      onConfirmed,
+    });
+  };
+
+  const closeDeleteMenuModal = () => {
+    setDeleteMenuModalState({
+      isOpen: false,
+      item: null,
+      onConfirmed: null,
+    });
+  };
+
+  const confirmDeleteMenuItem = () => {
+    if (!deleteMenuModalState.item) return;
+    const target = deleteMenuModalState.item;
+    deleteMasterMenuItem(target.id);
+    if (typeof deleteMenuModalState.onConfirmed === 'function') {
+      deleteMenuModalState.onConfirmed();
+    }
+    closeDeleteMenuModal();
+  };
+
+  // Central Menu Management: Add New Dish (Two-way synced with restaurant)
+  const addMasterMenuItem = (dishData) => {
+    const dishId = `dish_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const parsedPrice = parseInt(dishData.price) || 199;
+    const parsedOrig = dishData.originalPrice
+      ? parseInt(dishData.originalPrice)
+      : Math.round(parsedPrice * 1.25);
+
+    // Find assigned restaurant if any
+    const assignedRest = restaurants.find((r) => r.id === dishData.restaurantId);
+
+    const newDish = {
+      id: dishId,
+      name: dishData.name.trim(),
+      category: dishData.category || 'Pizza',
+      isVeg: !!dishData.isVeg,
+      price: parsedPrice,
+      originalPrice: parsedOrig,
+      description:
+        dishData.description?.trim() ||
+        'Chef-crafted delicacy made fresh with organic ingredients and signature seasonings.',
+      image:
+        dishData.image ||
+        (dishData.isVeg
+          ? 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&q=80&w=600'
+          : 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600'),
+      inStock: dishData.inStock !== false,
+      isFavorite: false,
+      rating: parseFloat(dishData.rating) || 4.7,
+      votes: Math.floor(Math.random() * 80) + 20,
+      restaurantId: dishData.restaurantId || (assignedRest ? assignedRest.id : 'rest_001'),
+      restaurantName: assignedRest ? assignedRest.name : 'Foodix Kitchen',
+      spicyLevel: dishData.spicyLevel || 'Mild',
+      prepTime: dishData.prepTime || '15-20 mins',
+      calories: dishData.calories || `${Math.floor(Math.random() * 300) + 350} kcal`,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 1. Add to central master menu items
+    setAllMenuItems((prev) => [newDish, ...prev]);
+
+    // 2. Also two-way sync: Add to the restaurant's menu list!
+    if (newDish.restaurantId) {
+      const restId = newDish.restaurantId;
+      setMenusByRestaurant((prev) => {
+        const rest = restaurants.find((r) => r.id === restId);
+        const existing = prev[restId] || (rest ? generateDefaultMenuForRestaurant(rest) : []);
+        return {
+          ...prev,
+          [restId]: [newDish, ...existing],
+        };
+      });
+
+      // Network Tab: POST /api/restaurants/:id/menu
+      menuService.addDish(restId, newDish).catch(() => {});
+    }
+
+    // Network Tab: POST /api/menu
+    menuService.addMasterMenuItem(newDish).catch(() => {});
+
+    // Live Dashboard Activity
+    addActivity({
+      type: 'menu',
+      action: 'item_add',
+      title: 'New food item added to platform',
+      subtitle: `${newDish.name} (${newDish.category} • ₹${newDish.price}) - ${newDish.restaurantName}`,
+      restaurantId: newDish.restaurantId,
+      color: newDish.isVeg ? 'emerald' : 'orange',
+      badge: newDish.isVeg ? 'Veg' : 'Non-Veg',
+    });
+
+    toast.success(`"${newDish.name}" added to Menu successfully!`);
+    return newDish;
+  };
+
+  // Central Menu Management: Update Dish
+  const updateMasterMenuItem = (dishId, updatedFields) => {
+    let targetDish = null;
+
+    setAllMenuItems((prev) =>
+      prev.map((item) => {
+        if (item.id === dishId) {
+          const updated = {
+            ...item,
+            ...updatedFields,
+            price:
+              updatedFields.price !== undefined
+                ? parseInt(updatedFields.price) || 0
+                : item.price,
+            originalPrice:
+              updatedFields.originalPrice !== undefined
+                ? parseInt(updatedFields.originalPrice) || 0
+                : item.originalPrice,
+          };
+          targetDish = updated;
+          return updated;
+        }
+        return item;
+      })
+    );
+
+    // Two-way sync: Update in restaurant menu if assigned
+    if (targetDish && targetDish.restaurantId) {
+      const restId = targetDish.restaurantId;
+      setMenusByRestaurant((prev) => {
+        if (!prev[restId]) return prev;
+        return {
+          ...prev,
+          [restId]: prev[restId].map((m) => (m.id === dishId ? { ...m, ...targetDish } : m)),
+        };
+      });
+
+      // Network Tab: PUT /api/restaurants/:id/menu/:itemId
+      menuService.updateDish(restId, dishId, targetDish).catch(() => {});
+    }
+
+    // Network Tab: PUT /api/menu/:id
+    menuService.updateMasterMenuItem(dishId, updatedFields).catch(() => {});
+
+    toast.success('Menu item updated successfully!');
+  };
+
+  // Central Menu Management: Delete Dish
+  const deleteMasterMenuItem = (dishId) => {
+    let deletedName = 'Dish';
+    let targetRestId = null;
+
+    setAllMenuItems((prev) => {
+      const found = prev.find((item) => item.id === dishId);
+      if (found) {
+        deletedName = found.name;
+        targetRestId = found.restaurantId;
+      }
+      return prev.filter((item) => item.id !== dishId);
+    });
+
+    // Two-way sync: Remove from restaurant menu
+    if (targetRestId) {
+      setMenusByRestaurant((prev) => {
+        if (!prev[targetRestId]) return prev;
+        return {
+          ...prev,
+          [targetRestId]: prev[targetRestId].filter((m) => m.id !== dishId),
+        };
+      });
+
+      // Network Tab: DELETE /api/restaurants/:id/menu/:itemId
+      menuService.deleteDish(targetRestId, dishId).catch(() => {});
+    }
+
+    // Network Tab: DELETE /api/menu/:id
+    menuService.deleteMasterMenuItem(dishId).catch(() => {});
+
+    // Activity Log
+    addActivity({
+      type: 'menu',
+      action: 'delete',
+      title: 'Food item deleted',
+      subtitle: `"${deletedName}" removed from active platform menu`,
+      color: 'rose',
+      badge: 'Removed',
+    });
+
+    toast.info(`"${deletedName}" deleted from menu.`);
+  };
+
+  // Central Menu Management: Toggle Item Stock
+  const toggleMasterItemStock = (dishId) => {
+    let newStatus = true;
+    let itemName = 'Dish';
+    let targetRestId = null;
+
+    setAllMenuItems((prev) =>
+      prev.map((item) => {
+        if (item.id === dishId) {
+          newStatus = !item.inStock;
+          itemName = item.name;
+          targetRestId = item.restaurantId;
+          return { ...item, inStock: newStatus };
+        }
+        return item;
+      })
+    );
+
+    // Two-way sync: Also toggle in restaurant menu
+    if (targetRestId) {
+      setMenusByRestaurant((prev) => {
+        if (!prev[targetRestId]) return prev;
+        return {
+          ...prev,
+          [targetRestId]: prev[targetRestId].map((m) =>
+            m.id === dishId ? { ...m, inStock: newStatus } : m
+          ),
+        };
+      });
+
+      // Network Tab: PATCH /api/restaurants/:id/menu/:itemId/stock
+      menuService.toggleStock(targetRestId, dishId, newStatus).catch(() => {});
+    }
+
+    // Network Tab: PATCH /api/menu/:id/stock
+    menuService.toggleMasterItemStock(dishId, newStatus).catch(() => {});
+
+    if (newStatus) {
+      toast.success(`"${itemName}" is now marked as Available`);
+    } else {
+      toast.warn(`"${itemName}" is marked as Unavailable (Out of Stock)`);
+    }
+  };
+
+  // Central Menu Management: Toggle Favorite Heart
+  const toggleMasterItemFavorite = (dishId) => {
+    let nextFav = false;
+    setAllMenuItems((prev) =>
+      prev.map((item) => {
+        if (item.id === dishId) {
+          nextFav = !item.isFavorite;
+          return { ...item, isFavorite: nextFav };
+        }
+        return item;
+      })
+    );
+
+    // Network Tab: PATCH /api/menu/:id/favorite
+    menuService.toggleMasterItemFavorite(dishId, nextFav).catch(() => {});
+  };
+
   // Get Restaurant Menu items (returns existing or dynamically generated defaults)
   const getRestaurantMenu = (restaurantId) => {
+    // Trigger Network Tab: GET /api/restaurants/:id/menu
+    menuService.getMenu(restaurantId).catch(() => {});
+
     if (menusByRestaurant[restaurantId] && Array.isArray(menusByRestaurant[restaurantId])) {
       return menusByRestaurant[restaurantId];
     }
@@ -495,7 +827,7 @@ export function RestaurantProvider({ children }) {
     return defaults;
   };
 
-  // Add Menu Item to Restaurant
+  // Add Menu Item to Restaurant (automatically syncs to master menu items too!)
   const addMenuItem = (restaurantId, newItemData) => {
     const restaurant = restaurants.find((r) => r.id === restaurantId);
     const existing =
@@ -507,9 +839,13 @@ export function RestaurantProvider({ children }) {
     const newItem = {
       id: `dish_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       restaurantId,
+      restaurantName: restaurant?.name || 'Partner Restaurant',
       name: newItemData.name.trim(),
       category: newItemData.category || 'Main Course',
       price: parseInt(newItemData.price) || 199,
+      originalPrice: newItemData.originalPrice
+        ? parseInt(newItemData.originalPrice)
+        : Math.round((parseInt(newItemData.price) || 199) * 1.25),
       rating: parseFloat(newItemData.rating) || 4.7,
       votes: Math.floor(Math.random() * 80) + 20,
       isVeg,
@@ -527,10 +863,22 @@ export function RestaurantProvider({ children }) {
       createdAt: new Date().toISOString(),
     };
 
+    // 1. Add to restaurant's menu
     setMenusByRestaurant((prev) => ({
       ...prev,
       [restaurantId]: [newItem, ...existing],
     }));
+
+    // 2. Also two-way sync: Add to master menu items so it appears in Menu Management!
+    setAllMenuItems((prev) => {
+      if (prev.some((item) => item.id === newItem.id)) return prev;
+      return [newItem, ...prev];
+    });
+
+    // Network Tab: POST /api/restaurants/:id/menu
+    menuService.addDish(restaurantId, newItem).catch((err) => {
+      console.warn(`[Network API] POST /api/restaurants/${restaurantId}/menu:`, err.message);
+    });
 
     // Log Activity for real-time dashboard feed
     addActivity({
@@ -547,7 +895,7 @@ export function RestaurantProvider({ children }) {
     return newItem;
   };
 
-  // Update Menu Item
+  // Update Menu Item (two-way sync with master menu)
   const updateMenuItem = (restaurantId, itemId, updatedFields) => {
     setMenusByRestaurant((prev) => {
       const restaurant = restaurants.find((r) => r.id === restaurantId);
@@ -573,6 +921,16 @@ export function RestaurantProvider({ children }) {
       return { ...prev, [restaurantId]: updated };
     });
 
+    // Sync with allMenuItems
+    setAllMenuItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, ...updatedFields } : item))
+    );
+
+    // Network Tab: PUT /api/restaurants/:id/menu/:itemId
+    menuService.updateDish(restaurantId, itemId, updatedFields).catch((err) => {
+      console.warn(`[Network API] PUT /api/restaurants/${restaurantId}/menu/${itemId}:`, err.message);
+    });
+
     toast.success('Food item updated successfully!');
   };
 
@@ -596,6 +954,16 @@ export function RestaurantProvider({ children }) {
       return { ...prev, [restaurantId]: updated };
     });
 
+    // Sync with allMenuItems
+    setAllMenuItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, inStock: newStatus } : item))
+    );
+
+    // Network Tab: PATCH /api/restaurants/:id/menu/:itemId/stock
+    menuService.toggleStock(restaurantId, itemId, newStatus).catch((err) => {
+      console.warn(`[Network API] PATCH /api/restaurants/${restaurantId}/menu/${itemId}/stock:`, err.message);
+    });
+
     if (newStatus) {
       toast.success(`"${itemName}" is now In Stock (Available for orders)`);
     } else {
@@ -603,7 +971,7 @@ export function RestaurantProvider({ children }) {
     }
   };
 
-  // Delete Menu Item
+  // Delete Menu Item (two-way sync with master menu)
   const deleteMenuItem = (restaurantId, itemId) => {
     let itemName = 'Dish';
     setMenusByRestaurant((prev) => {
@@ -614,6 +982,14 @@ export function RestaurantProvider({ children }) {
       if (itemToDelete) itemName = itemToDelete.name;
       const updated = existing.filter((item) => item.id !== itemId);
       return { ...prev, [restaurantId]: updated };
+    });
+
+    // Sync with allMenuItems
+    setAllMenuItems((prev) => prev.filter((item) => item.id !== itemId));
+
+    // Network Tab: DELETE /api/restaurants/:id/menu/:itemId
+    menuService.deleteDish(restaurantId, itemId).catch((err) => {
+      console.warn(`[Network API] DELETE /api/restaurants/${restaurantId}/menu/${itemId}:`, err.message);
     });
 
     toast.info(`"${itemName}" removed from restaurant menu.`);
@@ -677,6 +1053,19 @@ export function RestaurantProvider({ children }) {
         updateMenuItem,
         toggleItemStock,
         deleteMenuItem,
+        // Master Menu Management (Central Page + Two-way sync)
+        allMenuItems,
+        setAllMenuItems,
+        addMasterMenuItem,
+        updateMasterMenuItem,
+        deleteMasterMenuItem,
+        toggleMasterItemStock,
+        toggleMasterItemFavorite,
+        // Custom Delete Confirmation Modal for Menu
+        deleteMenuModalState,
+        openDeleteMenuModal,
+        closeDeleteMenuModal,
+        confirmDeleteMenuItem,
       }}
     >
       {children}

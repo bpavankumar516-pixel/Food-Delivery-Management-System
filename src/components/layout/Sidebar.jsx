@@ -8,7 +8,6 @@ import {
   Users,
   Tag,
   BarChart3,
-  Bike,
   Settings,
   LogOut,
   ChevronRight,
@@ -24,13 +23,12 @@ export default function Sidebar({ isOpen, onClose }) {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Restaurants', path: '/restaurants', icon: Store },
-    { name: 'Menu Management', path: '#menu', icon: BookOpen, hasSubmenu: true },
-    { name: 'Orders', path: '#orders', icon: ShoppingBag },
+    { name: 'Menu Management', path: '/menu', icon: BookOpen },
     { name: 'Customers', path: '#customers', icon: Users },
+    { name: 'Orders', path: '#orders', icon: ShoppingBag },
     { name: 'Coupons & Offers', path: '#coupons', icon: Tag },
     { name: 'Reports', path: '#reports', icon: BarChart3 },
-    { name: 'Delivery Partners', path: '#delivery', icon: Bike },
-    { name: 'Settings', path: '#settings', icon: Settings },
+    { name: 'Profile & Settings', path: '/profile', icon: Settings },
   ];
 
   return (
@@ -78,7 +76,9 @@ export default function Sidebar({ isOpen, onClose }) {
             const Icon = item.icon;
             const isActive =
               location.pathname === item.path ||
-              (item.path === '/restaurants' && location.pathname.startsWith('/restaurants'));
+              (item.path === '/restaurants' && location.pathname.startsWith('/restaurants')) ||
+              (item.path === '/menu' && location.pathname.startsWith('/menu')) ||
+              (item.path === '/profile' && location.pathname.startsWith('/profile'));
 
             if (isActive) {
               return (
