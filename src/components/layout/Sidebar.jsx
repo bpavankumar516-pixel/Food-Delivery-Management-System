@@ -24,11 +24,11 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Restaurants', path: '/restaurants', icon: Store },
     { name: 'Menu Management', path: '/menu', icon: BookOpen },
-    { name: 'Customers', path: '#customers', icon: Users },
-    { name: 'Orders', path: '#orders', icon: ShoppingBag },
-    { name: 'Coupons & Offers', path: '#coupons', icon: Tag },
-    { name: 'Reports', path: '#reports', icon: BarChart3 },
-    { name: 'Profile & Settings', path: '/profile', icon: Settings },
+    { name: 'Orders', path: '/orders', icon: ShoppingBag },
+    { name: 'Customers', path: '/customers', icon: Users },
+    { name: 'Coupons & Offers', path: '/coupons', icon: Tag },
+    { name: 'Reports', path: '/reports', icon: BarChart3 },
+    { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
   return (
@@ -78,7 +78,12 @@ export default function Sidebar({ isOpen, onClose }) {
               location.pathname === item.path ||
               (item.path === '/restaurants' && location.pathname.startsWith('/restaurants')) ||
               (item.path === '/menu' && location.pathname.startsWith('/menu')) ||
-              (item.path === '/profile' && location.pathname.startsWith('/profile'));
+              (item.path === '/orders' && location.pathname.startsWith('/orders')) ||
+              (item.path === '/customers' && location.pathname.startsWith('/customers')) ||
+              (item.path === '/coupons' && location.pathname.startsWith('/coupons')) ||
+              (item.path === '/reports' && location.pathname.startsWith('/reports')) ||
+              (item.path === '/settings' &&
+                (location.pathname.startsWith('/settings') || location.pathname.startsWith('/profile')));
 
             if (isActive) {
               return (

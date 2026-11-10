@@ -89,7 +89,7 @@ export default function FoodItemCard({ item, onView, onEdit }) {
           </div>
 
           <span className="px-2 py-0.5 rounded-md bg-rose-50/80 text-rose-600 text-[10px] font-bold tracking-wide">
-            {item.category}
+            {item.badgeCategory || item.category}
           </span>
         </div>
 

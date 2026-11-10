@@ -19,13 +19,14 @@ import { useRestaurants } from '../context/RestaurantContext';
 
 export default function MenuManagementPage() {
   const navigate = useNavigate();
-  const { allMenuItems } = useRestaurants();
+  const { allMenuItems, menuSearchQuery, setMenuSearchQuery } = useRestaurants();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(true);
 
-  // Filter & Search states
-  const [searchQuery, setSearchQuery] = useState('');
+  // Filter & Search states (search is 2-way synced with Header)
+  const searchQuery = menuSearchQuery;
+  const setSearchQuery = setMenuSearchQuery;
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedType, setSelectedType] = useState('All Types'); // 'All Types' | 'Veg' | 'Non-Veg'
   const [selectedStatus, setSelectedStatus] = useState('All Status'); // 'All Status' | 'Available' | 'Unavailable'

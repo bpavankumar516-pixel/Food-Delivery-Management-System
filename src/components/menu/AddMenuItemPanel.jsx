@@ -19,6 +19,16 @@ const DEFAULT_CATEGORY_IMAGES = {
   Snacks: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=600',
 };
 
+const DEFAULT_CATEGORY_RESTAURANTS = {
+  Pizza: 'rest_002', // Pizza Hut
+  Burger: 'rest_001', // Burger King
+  Pasta: 'rest_002', // Pizza Hut
+  'South Indian': 'rest_010', // Haldiram's
+  Chinese: 'rest_013', // Mainland China
+  Desserts: 'rest_021', // Theobroma Patisserie
+  Snacks: 'rest_001', // Burger King
+};
+
 export default function AddMenuItemPanel({ isOpen, onClose }) {
   const { restaurants, addMasterMenuItem } = useRestaurants();
 
@@ -27,16 +37,26 @@ export default function AddMenuItemPanel({ isOpen, onClose }) {
     description: '',
     price: '',
     category: 'Pizza',
-    restaurantId: restaurants[0]?.id || 'rest_001',
+    restaurantId: 'rest_002',
     isVeg: true,
     inStock: true,
     image: '',
   });
 
+  const [showCustomPartner, setShowCustomPartner] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
+
+  const handleCategoryChange = (cat) => {
+    const autoRest = DEFAULT_CATEGORY_RESTAURANTS[cat] || restaurants[0]?.id || 'rest_001';
+    setFormData((prev) => ({
+      ...prev,
+      category: cat,
+      restaurantId: autoRest,
+    }));
+  };
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -86,12 +106,13 @@ export default function AddMenuItemPanel({ isOpen, onClose }) {
       description: '',
       price: '',
       category: 'Pizza',
-      restaurantId: restaurants[0]?.id || 'rest_001',
+      restaurantId: 'rest_002',
       isVeg: true,
       inStock: true,
       image: '',
     });
     setError('');
+    setShowCustomPartner(false);
   };
 
   const handleSubmit = (e) => {
@@ -118,7 +139,13 @@ export default function AddMenuItemPanel({ isOpen, onClose }) {
       DEFAULT_CATEGORY_IMAGES[formData.category] ||
       DEFAULT_CATEGORY_IMAGES.Pizza;
 
-    const assignedRest = restaurants.find((r) => r.id === formData.restaurantId);
+    const assignedRestId =
+      formData.restaurantId ||
+      DEFAULT_CATEGORY_RESTAURANTS[formData.category] ||
+      restaurants[0]?.id ||
+      'rest_001';
+
+    const assignedRest = restaurants.find((r) => r.id === assignedRestId);
 
     addMasterMenuItem({
       name: formData.name.trim(),
@@ -128,7 +155,7 @@ export default function AddMenuItemPanel({ isOpen, onClose }) {
       isVeg: formData.isVeg,
       inStock: formData.inStock,
       image: finalImage,
-      restaurantId: formData.restaurantId,
+      restaurantId: assignedRestId,
       restaurantName: assignedRest ? assignedRest.name : 'Foodix Partner',
     });
 
@@ -269,7 +296,7 @@ export default function AddMenuItemPanel({ isOpen, onClose }) {
               </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50/50 focus:outline-hidden focus:border-emerald-600 cursor-pointer"
               >
                 <option value="Pizza">Pizza</option>
@@ -283,24 +310,32 @@ export default function AddMenuItemPanel({ isOpen, onClose }) {
             </div>
           </div>
 
-          {/* Restaurant Selector (Connects dish to restaurant!) */}
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
-              <span>Assign Restaurant *</span>
-              <span className="text-[10px] text-emerald-600 font-normal">Real-time sync</span>
-            </label>
-            <select
-              value={formData.restaurantId}
-              onChange={(e) => setFormData({ ...formData, restaurantId: e.target.value })}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50/50 focus:outline-hidden focus:border-emerald-600 cursor-pointer"
-            >
-              {restaurants.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} ({r.location})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Optional Partner Restaurant Override (cleanly collapsible) */}
+          {showCustomPartner && (
+            <div className="space-y-1 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-700">Specific Partner Restaurant</label>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomPartner(false)}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  Hide
+                </button>
+              </div>
+              <select
+                value={formData.restaurantId}
+                onChange={(e) => setFormData({ ...formData, restaurantId: e.target.value })}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-hidden focus:border-emerald-600 cursor-pointer"
+              >
+                {restaurants.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} ({r.location})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Type: Veg / Non-Veg Radio Buttons */}
           <div className="space-y-1">

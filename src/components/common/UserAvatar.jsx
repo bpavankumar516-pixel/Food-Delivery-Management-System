@@ -70,7 +70,7 @@ export default function UserAvatar({
   const shouldRenderImage = useCustomAvatar && avatar && !imageError;
 
   return (
-    <div className={`relative inline-flex shrink-0 select-none ${className}`}>
+    <div className={`relative inline-flex shrink-0 select-none rounded-full ${className}`}>
       {shouldRenderImage ? (
         <img
           src={avatar}

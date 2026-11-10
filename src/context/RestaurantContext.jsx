@@ -11,7 +11,7 @@ const RestaurantContext = createContext(null);
 const STORAGE_KEY = 'foodix_restaurants_v3';
 const ACTIVITIES_STORAGE_KEY = 'foodix_activities_v2';
 const MENUS_STORAGE_KEY = 'foodix_restaurant_menus_v2';
-const MASTER_MENU_STORAGE_KEY = 'foodix_master_menu_v3';
+const MASTER_MENU_STORAGE_KEY = 'foodix_master_menu_v4';
 
 const INITIAL_ACTIVITIES = [
   {
@@ -136,6 +136,7 @@ export function RestaurantProvider({ children }) {
 
   // Filter & Search Controls
   const [searchQuery, setSearchQuery] = useState('');
+  const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState('All Cuisines');
   const [selectedRating, setSelectedRating] = useState('All Ratings');
   const [sortBy, setSortBy] = useState('Most Popular');
@@ -1011,6 +1012,8 @@ export function RestaurantProvider({ children }) {
         // Filter states
         searchQuery,
         setSearchQuery,
+        menuSearchQuery,
+        setMenuSearchQuery,
         selectedCuisine,
         setSelectedCuisine,
         selectedRating,

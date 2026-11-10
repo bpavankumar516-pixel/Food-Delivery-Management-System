@@ -405,7 +405,7 @@ export default function MenuItemDetailsPage() {
                     className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#ff5722] to-[#ff6b3d] hover:from-[#f44e19] hover:to-[#ff5722] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/25 transition-transform active:scale-[0.98] cursor-pointer"
                   >
                     <Edit2 className="w-4 h-4" />
-                    <span>Edit Dish Information</span>
+                    <span>Edit Dish</span>
                   </button>
 
                   <button
@@ -414,7 +414,7 @@ export default function MenuItemDetailsPage() {
                     className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>Delete Dish</span>
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>

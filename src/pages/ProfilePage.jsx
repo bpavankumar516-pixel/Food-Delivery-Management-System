@@ -30,7 +30,6 @@ import { useRestaurants } from '../context/RestaurantContext';
 
 export default function ProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user, updateProfile, changePassword } = useAuth();
   const { restaurants, allMenuItems, activities } = useRestaurants();
 
@@ -225,98 +224,76 @@ export default function ProfilePage() {
 
         {/* Profile Container */}
         <main className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full space-y-6">
-          {/* Top Hero Banner & Profile Card */}
-          <div className="relative rounded-3xl bg-white border border-slate-200/90 shadow-xs overflow-hidden">
-            {/* Emerald Foodix Decorative Cover */}
-            <div className="h-44 sm:h-52 w-full bg-gradient-to-r from-[#05291e] via-[#094130] to-[#0c5942] relative overflow-hidden">
-              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]" />
-              <div className="absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-emerald-500/10 blur-2xl" />
-              <div className="absolute top-4 right-4 flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 text-xs font-bold backdrop-blur-xs flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Platform Super Administrator</span>
-                </span>
-              </div>
-            </div>
+          {/* Top Hero Banner & Profile Card - Guaranteed High-Contrast White Typography (Fixes Image 1) */}
+          <div className="relative rounded-3xl bg-gradient-to-r from-[#05291e] via-[#094130] to-[#0c5942] p-6 sm:p-8 text-white shadow-xl overflow-hidden border border-emerald-900">
+            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]" />
+            <div className="absolute -right-8 -bottom-10 w-64 h-64 rounded-full bg-emerald-500/15 blur-2xl" />
 
-            {/* Profile Bar (Avatar + Meta Details) */}
-            <div className="px-5 sm:px-8 pb-6 pt-0 relative">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-16 sm:-mt-20">
-                {/* Large Avatar Showcase */}
-                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left">
-                  <div className="relative group">
-                    <UserAvatar
-                      name={profileForm.name}
-                      avatar={profileForm.avatar}
-                      useCustomAvatar={profileForm.useCustomAvatar}
-                      gradient={profileForm.avatarGradient}
-                      size="2xl"
-                      showBadge={true}
-                      badgeStatus="online"
-                      className="ring-4 ring-white shadow-xl"
-                    />
-
-                    {/* Quick Camera Upload Icon */}
-                    <label
-                      htmlFor="profile-photo-upload"
-                      className="absolute bottom-1 right-1 p-2 rounded-full bg-white text-slate-700 shadow-md border border-slate-200 hover:bg-slate-50 cursor-pointer transition-transform hover:scale-110"
-                      title="Upload custom profile photo"
-                    >
-                      <Camera className="w-4 h-4 text-slate-600" />
-                      <input
-                        id="profile-photo-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Name & Title */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-center sm:justify-start gap-2">
-                      <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        {profileForm.name}
-                      </h1>
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" title="Verified Account" />
-                    </div>
-
-                    <p className="text-xs sm:text-sm font-bold text-slate-500">
-                      {profileForm.title} • <span className="text-emerald-700 font-semibold">{profileForm.department}</span>
-                    </p>
-
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-400 font-medium pt-1">
-                      <span className="flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{profileForm.email}</span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{profileForm.location}</span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Active since Jan 2024</span>
-                      </span>
-                    </div>
-                  </div>
+            <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10 text-center sm:text-left">
+              {/* White boxed avatar with initials matching Image 1 */}
+              <div className="relative shrink-0">
+                <div className="w-22 h-22 rounded-2xl bg-[#ff5722] text-white flex items-center justify-center font-black text-2xl shadow-xl ring-4 ring-white/20">
+                  <span>{initials}</span>
                 </div>
 
-                {/* Quick Platform Metrics */}
-                <div className="flex items-center justify-center sm:justify-end gap-3 pt-2 sm:pt-0">
-                  <div className="px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Restaurants</p>
-                    <p className="text-base sm:text-lg font-black text-slate-900">{restaurants.length}</p>
-                  </div>
-                  <div className="px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Menu Items</p>
-                    <p className="text-base sm:text-lg font-black text-slate-900">{allMenuItems.length}</p>
-                  </div>
-                  <div className="px-4 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-100 text-center">
-                    <p className="text-[10px] uppercase font-bold text-emerald-700">Status</p>
-                    <p className="text-base sm:text-lg font-black text-emerald-800">Active</p>
-                  </div>
+                {/* Quick Camera Upload Icon */}
+                <label
+                  htmlFor="profile-photo-upload"
+                  className="absolute -bottom-1 -right-1 p-2 rounded-full bg-white text-slate-700 shadow-md border border-slate-200 hover:bg-slate-50 cursor-pointer transition-transform hover:scale-110"
+                  title="Upload custom profile photo"
+                >
+                  <Camera className="w-4 h-4 text-slate-600" />
+                  <input
+                    id="profile-photo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Name & Title in Guaranteed High-Contrast White & Emerald (Fixes Image 1 contrast bug) */}
+              <div className="space-y-1.5 flex-1">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
+                    {profileForm.name}
+                  </h1>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-300/40 text-xs font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Verified Admin</span>
+                  </span>
+                </div>
+
+                <p className="text-xs sm:text-sm font-bold text-emerald-300 drop-shadow-2xs">
+                  {profileForm.title} • <span className="text-emerald-100">{profileForm.department}</span>
+                </p>
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-emerald-200/90 font-medium pt-1">
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>{profileForm.email}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>{profileForm.location}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Active since Jan 2024</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Platform Metrics */}
+              <div className="flex items-center justify-center sm:justify-end gap-3 pt-2 lg:pt-0">
+                <div className="px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
+                  <p className="text-[10px] uppercase font-bold text-emerald-300">Restaurants</p>
+                  <p className="text-base sm:text-lg font-black text-white">{restaurants.length}</p>
+                </div>
+                <div className="px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
+                  <p className="text-[10px] uppercase font-bold text-emerald-300">Menu Items</p>
+                  <p className="text-base sm:text-lg font-black text-white">{allMenuItems.length}</p>
                 </div>
               </div>
             </div>

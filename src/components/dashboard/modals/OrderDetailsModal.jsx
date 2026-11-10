@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, MapPin, Phone, CreditCard, Clock, CheckCircle2, ChevronDown } from 'lucide-react';
+import { X, MapPin, Phone, CreditCard } from 'lucide-react';
 import { useDashboard } from '../../../context/DashboardContext';
 
 export default function OrderDetailsModal() {

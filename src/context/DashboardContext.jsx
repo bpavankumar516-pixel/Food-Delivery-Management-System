@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { useRestaurants } from './RestaurantContext';
 import dashboardService from '../services/dashboardService';
 
-const DashboardContext = createContext(null);
+export const DashboardContext = createContext(null);
 
 const INITIAL_ORDERS = [
   {
@@ -351,10 +351,10 @@ export function DashboardProvider({ children }) {
   );
 }
 
-export function useDashboard() {
+export function useDashboard(options = { required: true }) {
   const context = useContext(DashboardContext);
-  if (!context) {
+  if (!context && options?.required !== false) {
     throw new Error('useDashboard must be used within a DashboardProvider');
   }
-  return context;
+  return context || {};
 }

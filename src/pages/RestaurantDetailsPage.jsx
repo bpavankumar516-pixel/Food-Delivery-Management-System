@@ -7,27 +7,21 @@ import {
   Clock,
   MapPin,
   Phone,
-  Mail,
   ShieldCheck,
   CheckCircle2,
   XCircle,
   Heart,
-  Share2,
   ExternalLink,
   Edit3,
   Trash2,
-  Calendar,
-  DollarSign,
   UtensilsCrossed,
   Sparkles,
   Search,
   Navigation,
   Copy,
   Check,
-  AlertTriangle,
   Plus,
   Leaf,
-  Flame,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Sidebar from '../components/layout/Sidebar';
@@ -51,7 +45,6 @@ export default function RestaurantDetailsPage() {
     openDeleteModal,
     openDeleteMenuModal,
     toggleItemStock,
-    deleteMenuItem,
   } = useRestaurants();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -128,7 +121,6 @@ export default function RestaurantDetailsPage() {
   const totalDishesCount = menuItems.length;
   const vegDishesCount = menuItems.filter((i) => i.isVeg).length;
   const nonVegDishesCount = menuItems.filter((i) => !i.isVeg).length;
-  const outOfStockCount = menuItems.filter((i) => !i.inStock).length;
 
   const filteredMenu = menuItems.filter((item) => {
     // Dietary Filter (All, Veg only, Non-Veg only, Bestsellers)

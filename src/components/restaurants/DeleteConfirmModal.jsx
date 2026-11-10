@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Trash2, AlertTriangle, X, Star, MapPin } from 'lucide-react';
+import { Trash2, X, Star, MapPin } from 'lucide-react';
 import { useRestaurants } from '../../context/RestaurantContext';
 
 export default function DeleteConfirmModal() {
