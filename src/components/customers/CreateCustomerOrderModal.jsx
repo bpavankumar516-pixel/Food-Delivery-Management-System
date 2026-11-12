@@ -1,53 +1,87 @@
-import React, { useState } from 'react';
-import {
-  X,
-  ShoppingBag,
-  Store,
-  CheckCircle2,
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { useCustomers } from '../../context/CustomerContext';
 import { useRestaurants } from '../../context/RestaurantContext';
+import { useOrders } from '../../context/OrderContext';
 
 export default function CreateCustomerOrderModal() {
-  const { selectedCustomer, isCreateOrderOpen, closeCreateOrderModal, placeOrderForCustomer } =
-    useCustomers();
+  const { selectedCustomer, isCreateOrderOpen, closeCreateOrderModal } = useCustomers();
   const { allMenuItems, restaurants } = useRestaurants();
+  const { createOrder } = useOrders();
 
   const [selectedRestId, setSelectedRestId] = useState(restaurants[0]?.id || 'rest_001');
   const [selectedDishId, setSelectedDishId] = useState(allMenuItems[0]?.id || '');
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('UPI (PhonePe)');
-  const [deliveryAddress, setDeliveryAddress] = useState(selectedCustomer?.address || '');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+
+  useEffect(() => {
+    if (selectedCustomer) {
+      setDeliveryAddress(
+        [selectedCustomer.address, selectedCustomer.city, selectedCustomer.state]
+          .filter(Boolean)
+          .join(', ')
+      );
+    }
+  }, [selectedCustomer]);
+
+  const restaurantDishes = useMemo(() => {
+    const matched = allMenuItems.filter((d) => d.restaurantId === selectedRestId);
+    return matched.length > 0 ? matched : allMenuItems;
+  }, [allMenuItems, selectedRestId]);
+
+  useEffect(() => {
+    if (restaurantDishes.length > 0 && !restaurantDishes.some((d) => d.id === selectedDishId)) {
+      setSelectedDishId(restaurantDishes[0].id);
+    }
+  }, [restaurantDishes, selectedDishId]);
 
   if (!isCreateOrderOpen || !selectedCustomer) return null;
 
-  const currentDish = allMenuItems.find((d) => d.id === selectedDishId) || allMenuItems[0];
+  const currentDish =
+    restaurantDishes.find((d) => d.id === selectedDishId) || restaurantDishes[0] || allMenuItems[0];
   const currentRest = restaurants.find((r) => r.id === selectedRestId) || restaurants[0];
 
-  const handleSubmit = (e) => {
+  const subtotal = (currentDish?.price || 0) * quantity;
+  const deliveryFee = currentRest?.deliveryFee || 35;
+  const tax = Math.round(subtotal * 0.05);
+  const grandTotal = subtotal + deliveryFee + tax;
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentDish) return;
 
-    const totalAmount = currentDish.price * quantity;
-
-    placeOrderForCustomer(selectedCustomer.id, {
-      restaurantName: currentRest?.name || currentDish.restaurantName || 'Foodix Central',
+    await createOrder({
+      customerId: selectedCustomer.id,
+      restaurant: currentRest?.name || currentDish.restaurantName || 'Foodix Central',
       restaurantId: selectedRestId,
-      amount: totalAmount,
+      subtotal,
+      discount: 0,
+      deliveryFee,
+      tax,
+      grandTotal,
+      amount: grandTotal,
       paymentMethod,
-      deliveryAddress: deliveryAddress || `${selectedCustomer.address}, ${selectedCustomer.city}`,
+      deliveryAddress,
       items: [
         {
+          id: currentDish.id,
           name: currentDish.name,
           qty: quantity,
           price: currentDish.price,
+          instructions: '',
         },
       ],
     });
+
+    closeCreateOrderModal();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 select-none">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 select-none"
+      onClick={closeCreateOrderModal}
+    >
       <div
         className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -55,13 +89,23 @@ export default function CreateCustomerOrderModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4.5 border-b border-slate-100 bg-slate-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-100 text-[#ff5722] flex items-center justify-center shadow-xs">
-              <ShoppingBag className="w-5 h-5" />
-            </div>
+            <img
+              src={selectedCustomer.avatar}
+              alt={selectedCustomer.fullName}
+              className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+              onError={(e) => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  selectedCustomer.fullName
+                )}&background=ff5722&color=fff&bold=true`;
+              }}
+            />
             <div>
-              <h3 className="font-black text-slate-900 text-base">Create Customer Order</h3>
+              <h3 className="font-black text-slate-900 text-base flex items-center gap-1.5">
+                <ShoppingBag className="w-4 h-4 text-[#ff5722]" />
+                <span>Create Customer Order</span>
+              </h3>
               <p className="text-xs text-slate-500">
-                Ordering for <span className="font-bold text-slate-800">{selectedCustomer.fullName}</span>
+                Ordering for <span className="font-bold text-slate-800">{selectedCustomer.fullName}</span> ({selectedCustomer.city})
               </p>
             </div>
           </div>
@@ -100,7 +144,7 @@ export default function CreateCustomerOrderModal() {
               onChange={(e) => setSelectedDishId(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 bg-slate-50/50 cursor-pointer focus:outline-none focus:border-emerald-600"
             >
-              {allMenuItems.map((dish) => (
+              {restaurantDishes.map((dish) => (
                 <option key={dish.id} value={dish.id}>
                   {dish.name} - ₹{dish.price} ({dish.category} • {dish.isVeg ? 'Veg' : 'Non-Veg'})
                 </option>
@@ -139,7 +183,7 @@ export default function CreateCustomerOrderModal() {
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 font-semibold text-slate-800 cursor-pointer focus:outline-none focus:border-emerald-600"
               >
                 <option value="UPI (PhonePe)">UPI (PhonePe)</option>
-                <option value="UPI (GPay)">UPI (Google Pay)</option>
+                <option value="UPI (Google Pay)">UPI (Google Pay)</option>
                 <option value="Credit Card">Credit Card</option>
                 <option value="Cash on Delivery">Cash on Delivery</option>
               </select>
@@ -152,7 +196,7 @@ export default function CreateCustomerOrderModal() {
             <input
               type="text"
               required
-              value={deliveryAddress || `${selectedCustomer.address}, ${selectedCustomer.city}`}
+              value={deliveryAddress}
               onChange={(e) => setDeliveryAddress(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 bg-slate-50/50 focus:outline-none focus:border-emerald-600"
             />
@@ -166,11 +210,11 @@ export default function CreateCustomerOrderModal() {
                   {quantity}x {currentDish.name}
                 </p>
                 <p className="text-[11px] text-emerald-700 font-medium">
-                  Unit Price: ₹{currentDish.price} • Free Delivery
+                  Subtotal: ₹{subtotal} + Delivery ₹{deliveryFee} + GST ₹{tax}
                 </p>
               </div>
               <span className="font-black text-lg text-emerald-800">
-                ₹{currentDish.price * quantity}
+                ₹{grandTotal.toLocaleString()}
               </span>
             </div>
           )}

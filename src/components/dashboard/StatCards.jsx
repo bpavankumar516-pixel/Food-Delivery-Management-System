@@ -45,6 +45,7 @@ export default function StatCards() {
       trendColor: 'text-emerald-600',
       sparklineColor: '#10b981',
       sparkPath: 'M0,26 C12,24 24,18 36,22 C48,26 60,12 72,16 C84,18 92,6 100,2',
+      link: '/orders',
     },
     {
       id: 'active_orders',
@@ -57,6 +58,7 @@ export default function StatCards() {
       trendColor: 'text-blue-600',
       sparklineColor: '#3b82f6',
       sparkPath: 'M0,24 C14,24 26,16 40,22 C52,26 65,12 78,18 C88,20 94,8 100,3',
+      link: '/orders',
     },
     {
       id: 'delivered_orders',
@@ -69,6 +71,7 @@ export default function StatCards() {
       trendColor: 'text-purple-600',
       sparklineColor: '#8b5cf6',
       sparkPath: 'M0,25 C12,26 24,19 38,23 C50,26 62,14 74,17 C85,18 92,7 100,2',
+      link: '/orders',
     },
     {
       id: 'total_customers',
@@ -81,6 +84,7 @@ export default function StatCards() {
       trendColor: 'text-emerald-600',
       sparklineColor: '#10b981',
       sparkPath: 'M0,26 C15,22 25,26 38,18 C50,10 62,24 75,14 C85,8 92,15 100,3',
+      link: '/customers',
     },
   ];
 

@@ -2,14 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { toast } from 'react-toastify';
 import customerService from '../services/customerService';
 import { INITIAL_CUSTOMERS } from '../data/mockCustomers';
-import { DashboardContext } from './DashboardContext';
+import { RestaurantContext } from './RestaurantContext';
 
-const CustomerContext = createContext(null);
-const STORAGE_KEY = 'foodix_customers_v2';
+export const CustomerContext = createContext(null);
+const STORAGE_KEY = 'foodix_customers_v4';
 
 export function CustomerProvider({ children }) {
-  const dashboard = useContext(DashboardContext) || {};
-  const addActivity = dashboard.addActivity;
+  const restaurantCtx = useContext(RestaurantContext) || {};
+  const addActivity = restaurantCtx.addActivity;
 
   // Initialize customers from localStorage or fallback
   const [customers, setCustomers] = useState(() => {
@@ -39,6 +39,33 @@ export function CustomerProvider({ children }) {
     }
   }, [customers]);
 
+  // Helper to merge live DummyJSON API customers with local customer orders/status overrides
+  const mergeCustomersWithLocalState = (prev, apiUsers) => {
+    const prevMap = new Map(prev.map((c) => [c.id, c]));
+    const userAdded = prev.filter((c) => c.id.startsWith('cust_user_'));
+
+    const mergedApiUsers = apiUsers.map((u) => {
+      const existing = prevMap.get(u.id);
+      if (!existing) return u;
+
+      // Preserve any newly created orders on this customer
+      const existingOrders = Array.isArray(existing.orders) ? existing.orders : [];
+      const apiOrderIds = new Set((u.orders || []).map((o) => o.id));
+      const extraOrders = existingOrders.filter((o) => !apiOrderIds.has(o.id));
+      const combinedOrders = [...extraOrders, ...(u.orders || [])];
+
+      return {
+        ...u,
+        status: existing.status || u.status,
+        orders: combinedOrders,
+        ordersCount: Math.max(existing.ordersCount || 0, u.ordersCount || 0),
+        totalSpent: Math.max(existing.totalSpent || 0, u.totalSpent || 0),
+      };
+    });
+
+    return [...userAdded, ...mergedApiUsers];
+  };
+
   // Initial fetch from DummyJSON Users API (visible in browser Network tab)
   useEffect(() => {
     let isMounted = true;
@@ -47,11 +74,7 @@ export function CustomerProvider({ children }) {
       try {
         const dummyUsers = await customerService.fetchFromDummyJson();
         if (isMounted && dummyUsers && dummyUsers.length > 0) {
-          setCustomers((prev) => {
-            // Keep any user-created custom customers (ids starting with 'cust_user_')
-            const userAdded = prev.filter((c) => c.id.startsWith('cust_user_'));
-            return [...userAdded, ...dummyUsers];
-          });
+          setCustomers((prev) => mergeCustomersWithLocalState(prev, dummyUsers));
         }
       } catch (err) {
         console.warn('Error fetching DummyJSON users:', err);
@@ -73,13 +96,11 @@ export function CustomerProvider({ children }) {
     try {
       const liveUsers = await customerService.fetchFromDummyJson();
       if (liveUsers && liveUsers.length > 0) {
-        setCustomers((prev) => {
-          const userAdded = prev.filter((c) => c.id.startsWith('cust_user_'));
-          return [...userAdded, ...liveUsers];
-        });
+        setCustomers((prev) => mergeCustomersWithLocalState(prev, liveUsers));
         toast.success(`Synchronized ${liveUsers.length} customers from DummyJSON!`);
       }
     } catch (err) {
+      console.warn('Failed to refresh from DummyJSON API:', err);
       toast.error('Failed to refresh from DummyJSON API');
     } finally {
       setIsRefreshingApi(false);
@@ -88,7 +109,6 @@ export function CustomerProvider({ children }) {
 
   // Filter & Search Controls
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTier, setSelectedTier] = useState('All Tiers'); // 'All Tiers' | 'VIP' | 'Gold' | 'Regular'
   const [selectedStatus, setSelectedStatus] = useState('All Status'); // 'All Status' | 'Active' | 'Blocked'
   const [selectedGender, setSelectedGender] = useState('All Genders'); // 'All Genders' | 'female' | 'male'
   const [selectedDateRange, setSelectedDateRange] = useState('Last 30 Days');
@@ -98,11 +118,12 @@ export function CustomerProvider({ children }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7; // Matching Image 2: "Showing 1 – 7 of 892 customers"
 
-  // Modals & Selected Customer: View, Edit, Add, Delete
+  // Modals & Selected Customer: View, Edit, Add, Delete, Create Order
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
 
   // Custom Delete Confirmation Modal State
   const [deleteModalState, setDeleteModalState] = useState({
@@ -144,11 +165,6 @@ export function CustomerProvider({ children }) {
           return false;
         }
 
-        // Tier filter
-        if (selectedTier !== 'All Tiers' && c.tier !== selectedTier) {
-          return false;
-        }
-
         // City filter
         if (selectedCity !== 'All Cities' && c.city !== selectedCity) {
           return false;
@@ -163,12 +179,12 @@ export function CustomerProvider({ children }) {
         if (sortBy === 'Customer ID') return (a.dummyId || 0) - (b.dummyId || 0);
         return 0;
       });
-  }, [customers, searchQuery, selectedStatus, selectedGender, selectedTier, selectedCity, sortBy]);
+  }, [customers, searchQuery, selectedStatus, selectedGender, selectedCity, sortBy]);
 
   // Reset pagination on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedStatus, selectedGender, selectedTier, selectedCity, sortBy]);
+  }, [searchQuery, selectedStatus, selectedGender, selectedCity, sortBy]);
 
   // Paginated Slice
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage) || 1;
@@ -181,7 +197,6 @@ export function CustomerProvider({ children }) {
   const stats = useMemo(() => {
     const total = customers.length;
     const active = customers.filter((c) => c.status === 'Active').length;
-    const vip = customers.filter((c) => c.tier === 'VIP').length;
     const blocked = customers.filter((c) => c.status === 'Blocked').length;
     const totalRevenue = customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0);
     const totalOrders = customers.reduce((sum, c) => sum + (c.ordersCount || 0), 0);
@@ -189,7 +204,6 @@ export function CustomerProvider({ children }) {
     return {
       totalCustomers: total,
       activeCustomers: active,
-      vipCustomers: vip,
       blockedCustomers: blocked,
       totalRevenue,
       totalOrders,
@@ -204,7 +218,9 @@ export function CustomerProvider({ children }) {
         if (c.id === customerId) {
           const nextStatus = c.status === 'Blocked' ? 'Active' : 'Blocked';
           toast.info(`Customer "${c.fullName}" is now ${nextStatus}`);
-          return { ...c, status: nextStatus };
+          const updated = { ...c, status: nextStatus };
+          setSelectedCustomer((curr) => (curr?.id === customerId ? updated : curr));
+          return updated;
         }
         return c;
       })
@@ -326,6 +342,77 @@ export function CustomerProvider({ children }) {
     return newCustomer;
   };
 
+  // Create Order Modal triggers for Customer page
+  const openCreateOrderModal = (customer) => {
+    setSelectedCustomer(customer);
+    setIsCreateOrderOpen(true);
+  };
+
+  const closeCreateOrderModal = () => {
+    setIsCreateOrderOpen(false);
+  };
+
+  // Record a placed order into customer's history & lifetime metrics (two-way sync with OrderContext)
+  const recordCustomerOrder = (customerId, orderObj) => {
+    if (!customerId || !orderObj) return;
+    const orderAmount = orderObj.grandTotal || orderObj.amount || 0;
+    const customerOrderEntry = {
+      id: orderObj.id,
+      restaurant: orderObj.restaurant || orderObj.restaurantName || 'Foodix Kitchen',
+      restaurantId: orderObj.restaurantId || 'rest_001',
+      date: orderObj.placedAt || 'Just now',
+      timestamp: orderObj.timestamp || Date.now(),
+      amount: orderAmount,
+      grandTotal: orderAmount,
+      status: orderObj.status || 'Pending',
+      paymentMethod: orderObj.paymentMethod || 'UPI (PhonePe)',
+      deliveryAddress: orderObj.deliveryAddress || orderObj.customer?.address || '',
+      items: orderObj.items || [],
+    };
+
+    setCustomers((prev) =>
+      prev.map((c) => {
+        if (c.id !== customerId) return c;
+        const alreadyHas = (c.orders || []).some((o) => o.id === customerOrderEntry.id);
+        const updatedOrders = alreadyHas
+          ? c.orders.map((o) => (o.id === customerOrderEntry.id ? customerOrderEntry : o))
+          : [customerOrderEntry, ...(c.orders || [])];
+
+        const updatedCustomer = {
+          ...c,
+          orders: updatedOrders,
+          ordersCount: alreadyHas ? c.ordersCount : (c.ordersCount || 0) + 1,
+          totalSpent: alreadyHas ? c.totalSpent : (c.totalSpent || 0) + orderAmount,
+          lastActive: 'Just now',
+        };
+        if (selectedCustomer?.id === customerId) {
+          setSelectedCustomer(updatedCustomer);
+        }
+        return updatedCustomer;
+      })
+    );
+  };
+
+  // Sync status change from OrdersPage back into Customer's order history
+  const syncCustomerOrderStatus = (orderId, newStatus) => {
+    if (!orderId) return;
+    setCustomers((prev) =>
+      prev.map((c) => {
+        if (!Array.isArray(c.orders) || !c.orders.some((o) => o.id === orderId)) {
+          return c;
+        }
+        const updated = {
+          ...c,
+          orders: c.orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
+        };
+        if (selectedCustomer?.id === c.id) {
+          setSelectedCustomer(updated);
+        }
+        return updated;
+      })
+    );
+  };
+
   return (
     <CustomerContext.Provider
       value={{
@@ -340,8 +427,6 @@ export function CustomerProvider({ children }) {
         // Search & Filters
         searchQuery,
         setSearchQuery,
-        selectedTier,
-        setSelectedTier,
         selectedStatus,
         setSelectedStatus,
         selectedGender,
@@ -358,7 +443,7 @@ export function CustomerProvider({ children }) {
         setCurrentPage,
         totalPages,
         itemsPerPage,
-        // Modals & Selection: View, Edit, Add, Delete
+        // Modals & Selection: View, Edit, Add, Delete, Create Order
         selectedCustomer,
         setSelectedCustomer,
         openCustomerDetails,
@@ -374,6 +459,11 @@ export function CustomerProvider({ children }) {
         isAddCustomerOpen,
         setIsAddCustomerOpen,
         addCustomer,
+        isCreateOrderOpen,
+        openCreateOrderModal,
+        closeCreateOrderModal,
+        recordCustomerOrder,
+        syncCustomerOrderStatus,
         openDeleteModal,
         closeDeleteModal,
         confirmDelete,

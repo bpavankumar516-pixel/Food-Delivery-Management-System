@@ -5,12 +5,13 @@ import {
   Plus,
   RefreshCw,
   ShoppingBag,
-  Crown,
   Ban,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Calendar,
   Download,
+  IndianRupee,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Sidebar from '../components/layout/Sidebar';
@@ -20,6 +21,7 @@ import CustomerDetailsModal from '../components/customers/CustomerDetailsModal';
 import EditCustomerModal from '../components/customers/EditCustomerModal';
 import AddCustomerModal from '../components/customers/AddCustomerModal';
 import DeleteCustomerConfirmModal from '../components/customers/DeleteCustomerConfirmModal';
+import CreateCustomerOrderModal from '../components/customers/CreateCustomerOrderModal';
 import { useCustomers } from '../context/CustomerContext';
 
 export default function CustomersPage() {
@@ -59,7 +61,7 @@ export default function CustomersPage() {
       return;
     }
 
-    const headers = ['ID', 'Full Name', 'Email', 'Phone', 'City', 'Status', 'Tier', 'Total Orders', 'Total Spent (INR)'];
+    const headers = ['ID', 'Full Name', 'Email', 'Phone', 'City', 'Status', 'Total Orders', 'Total Spent (INR)'];
     const rows = filteredCustomers.map((c) => [
       c.id,
       `"${c.fullName}"`,
@@ -67,7 +69,6 @@ export default function CustomersPage() {
       c.phone,
       `"${c.city || ''}"`,
       c.status,
-      c.tier,
       c.ordersCount || 0,
       c.totalSpent || 0,
     ]);
@@ -137,74 +138,127 @@ export default function CustomersPage() {
             </div>
           </div>
 
-          {/* 4 KPI Overview Cards matching Image 2 */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* 5 Compact KPI Overview Cards: Total, Active, Blocked, Orders, Revenue (Reduced Size) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
             {/* Card 1: Total Customers */}
-            <div className="bg-[#eaf5ef] p-4 sm:p-5 rounded-3xl border border-emerald-100 shadow-2xs relative overflow-hidden">
+            <div
+              onClick={() => setSelectedStatus('All Status')}
+              className={`p-3 sm:p-3.5 rounded-2xl border shadow-2xs relative overflow-hidden transition-all cursor-pointer ${
+                selectedStatus === 'All Status'
+                  ? 'bg-[#eaf5ef] border-emerald-300 ring-2 ring-emerald-500/20'
+                  : 'bg-white hover:bg-slate-50 border-slate-200/90'
+              }`}
+              title="Click to view all customers"
+            >
               <div className="flex items-center justify-between relative z-10">
-                <div className="w-10 h-10 rounded-xl bg-[#064e3b] text-white flex items-center justify-center shadow-xs">
-                  <Users className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-[#064e3b] text-white flex items-center justify-center shadow-xs">
+                  <Users className="w-4 h-4" />
                 </div>
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
+                  ↑ 12%
+                </span>
               </div>
               <div className="mt-2 relative z-10">
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{stats.totalCustomers || 892}</p>
-                <p className="text-xs font-bold text-slate-700 mt-0.5">Total Customers</p>
-                <p className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center gap-1">
-                  <span>↑ 12%</span>
+                <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                  {stats.totalCustomers || 12}
                 </p>
+                <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Total Customers</p>
               </div>
-              <Users className="w-24 h-24 absolute -right-3 -bottom-4 text-emerald-900/5 pointer-events-none" />
             </div>
 
             {/* Card 2: Active Customers */}
-            <div className="bg-[#fff4eb] p-4 sm:p-5 rounded-3xl border border-orange-100 shadow-2xs relative overflow-hidden">
+            <div
+              onClick={() => setSelectedStatus('Active')}
+              className={`p-3 sm:p-3.5 rounded-2xl border shadow-2xs relative overflow-hidden transition-all cursor-pointer ${
+                selectedStatus === 'Active'
+                  ? 'bg-[#fff4eb] border-orange-300 ring-2 ring-orange-500/20'
+                  : 'bg-white hover:bg-slate-50 border-slate-200/90'
+              }`}
+              title="Click to filter Active customers"
+            >
               <div className="flex items-center justify-between relative z-10">
-                <div className="w-10 h-10 rounded-xl bg-[#ff5722] text-white flex items-center justify-center shadow-xs">
-                  <ShoppingBag className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-[#ff5722] text-white flex items-center justify-center shadow-xs">
+                  <CheckCircle2 className="w-4 h-4" />
                 </div>
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
+                  ↑ 10%
+                </span>
               </div>
               <div className="mt-2 relative z-10">
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{stats.activeCustomers || 648}</p>
-                <p className="text-xs font-bold text-slate-700 mt-0.5">Active Customers</p>
-                <p className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center gap-1">
-                  <span>↑ 10%</span>
+                <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                  {stats.activeCustomers || 9}
                 </p>
+                <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Active Customers</p>
               </div>
-              <ShoppingBag className="w-24 h-24 absolute -right-3 -bottom-4 text-orange-900/5 pointer-events-none" />
             </div>
 
-            {/* Card 3: VIP Customers */}
-            <div className="bg-[#eff9f0] p-4 sm:p-5 rounded-3xl border border-emerald-100 shadow-2xs relative overflow-hidden">
+            {/* Card 3: Blocked Customers */}
+            <div
+              onClick={() => setSelectedStatus('Blocked')}
+              className={`p-3 sm:p-3.5 rounded-2xl border shadow-2xs relative overflow-hidden transition-all cursor-pointer ${
+                selectedStatus === 'Blocked'
+                  ? 'bg-[#fef0f0] border-rose-300 ring-2 ring-rose-500/20'
+                  : 'bg-white hover:bg-slate-50 border-slate-200/90'
+              }`}
+              title="Click to filter Blocked customers"
+            >
               <div className="flex items-center justify-between relative z-10">
-                <div className="w-10 h-10 rounded-xl bg-[#10b981] text-white flex items-center justify-center shadow-xs">
-                  <Crown className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-[#ef4444] text-white flex items-center justify-center shadow-xs">
+                  <Ban className="w-4 h-4" />
                 </div>
+                <span className="text-[10px] text-rose-600 font-bold bg-rose-100/60 px-1.5 py-0.5 rounded-md">
+                  ↓ 5%
+                </span>
               </div>
               <div className="mt-2 relative z-10">
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{stats.vipCustomers || 244}</p>
-                <p className="text-xs font-bold text-slate-700 mt-0.5">VIP Customers</p>
-                <p className="text-[11px] text-emerald-700 font-bold mt-1 flex items-center gap-1">
-                  <span>↑ 8%</span>
+                <p className="text-xl sm:text-2xl font-black text-rose-600 leading-tight">
+                  {stats.blockedCustomers || 3}
                 </p>
+                <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Blocked Customers</p>
               </div>
-              <Crown className="w-24 h-24 absolute -right-3 -bottom-4 text-emerald-900/5 pointer-events-none" />
             </div>
 
-            {/* Card 4: Blocked Customers */}
-            <div className="bg-[#fef0f0] p-4 sm:p-5 rounded-3xl border border-rose-100 shadow-2xs relative overflow-hidden">
+            {/* Card 4: Total Orders Placed */}
+            <div
+              onClick={() => setSelectedStatus('All Status')}
+              className="bg-white hover:bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs relative overflow-hidden transition-all cursor-pointer"
+              title="Total food delivery orders placed"
+            >
               <div className="flex items-center justify-between relative z-10">
-                <div className="w-10 h-10 rounded-xl bg-[#ef4444] text-white flex items-center justify-center shadow-xs">
-                  <Ban className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-[#097956] text-white flex items-center justify-center shadow-xs">
+                  <ShoppingBag className="w-4 h-4" />
                 </div>
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
+                  ↑ 15%
+                </span>
               </div>
               <div className="mt-2 relative z-10">
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{stats.blockedCustomers || 32}</p>
-                <p className="text-xs font-bold text-slate-700 mt-0.5">Blocked Customers</p>
-                <p className="text-[11px] text-rose-600 font-bold mt-1 flex items-center gap-1">
-                  <span>↓ 5%</span>
+                <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                  {stats.totalOrders || 121}
                 </p>
+                <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Total Orders Placed</p>
               </div>
-              <Ban className="w-24 h-24 absolute -right-3 -bottom-4 text-rose-900/5 pointer-events-none" />
+            </div>
+
+            {/* Card 5: Total Revenue */}
+            <div
+              className="bg-white hover:bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs relative overflow-hidden transition-all col-span-2 sm:col-span-1"
+              title="Total customer spend revenue"
+            >
+              <div className="flex items-center justify-between relative z-10">
+                <div className="w-8 h-8 rounded-lg bg-[#ea580c] text-white flex items-center justify-center shadow-xs">
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
+                  ↑ 18%
+                </span>
+              </div>
+              <div className="mt-2 relative z-10">
+                <p className="text-xl sm:text-2xl font-black text-emerald-700 leading-tight">
+                  ₹{(stats.totalRevenue || 48250).toLocaleString()}
+                </p>
+                <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Total Revenue</p>
+              </div>
             </div>
           </div>
 
@@ -368,11 +422,12 @@ export default function CustomersPage() {
         </main>
       </div>
 
-      {/* Reusable Modals: View, Edit, Add, Delete */}
+      {/* Reusable Modals: View, Edit, Add, Delete, Create Order */}
       <CustomerDetailsModal />
       <EditCustomerModal />
       <AddCustomerModal />
       <DeleteCustomerConfirmModal />
+      <CreateCustomerOrderModal />
     </div>
   );
 }

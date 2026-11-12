@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { useRestaurants } from './RestaurantContext';
+import { OrderContext } from './OrderContext';
+import { CustomerContext } from './CustomerContext';
 import dashboardService from '../services/dashboardService';
 
 export const DashboardContext = createContext(null);
@@ -140,8 +142,29 @@ const REVENUE_DATASETS = {
 
 export function DashboardProvider({ children }) {
   const { stats: restStats, addRestaurant, activities, addActivity, allMenuItems } = useRestaurants();
+  const orderCtx = useContext(OrderContext) || {};
+  const customerCtx = useContext(CustomerContext) || {};
 
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const liveOrders = orderCtx.orders && orderCtx.orders.length > 0 ? orderCtx.orders : INITIAL_ORDERS;
+
+  const orders = useMemo(
+    () =>
+      liveOrders.map((o) => ({
+        ...o,
+        amount: o.grandTotal || o.amount || 0,
+        orderTime: o.orderTime || o.placedAt || 'Just now',
+        customer: {
+          ...o.customer,
+          avatar:
+            o.customer?.avatar ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              o.customer?.name || 'Customer'
+            )}&background=064e3b&color=fff&bold=true`,
+        },
+      })),
+    [liveOrders]
+  );
+
   const [revenueTimeframe, setRevenueTimeframe] = useState('Last 7 Days');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRealtimeActive, setIsRealtimeActive] = useState(true);
@@ -156,30 +179,28 @@ export function DashboardProvider({ children }) {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isAllActivitiesOpen, setIsAllActivitiesOpen] = useState(false);
 
-  // Dashboard Stats dynamically synchronized with RestaurantContext & Menu Items
-  const [stats, setStats] = useState({
-    totalRestaurants: restStats?.totalRestaurants || 24,
-    totalRestaurantsChange: restStats?.totalChange || '+12%',
-    totalFoodItems: allMenuItems?.length || 24,
-    totalFoodItemsChange: '+12%',
-    totalOrders: 1248,
-    totalOrdersChange: '+15%',
-    activeOrders: 248,
-    activeOrdersChange: '+10%',
-    deliveredOrders: 982,
-    deliveredOrdersChange: '+18%',
-    totalCustomers: 892,
-    totalCustomersChange: '+14%',
-  });
+  const [extraFoodItems, setExtraFoodItems] = useState(0);
 
-  // Keep totalRestaurants and totalFoodItems in real-time sync with RestaurantContext
-  useEffect(() => {
-    setStats((prev) => ({
-      ...prev,
-      totalRestaurants: restStats?.totalRestaurants ?? prev.totalRestaurants,
-      totalFoodItems: allMenuItems?.length ?? prev.totalFoodItems,
-    }));
-  }, [restStats?.totalRestaurants, allMenuItems?.length]);
+  // Dashboard Stats dynamically synchronized with RestaurantContext, OrderContext & CustomerContext
+  const stats = useMemo(() => {
+    const orderStats = orderCtx.stats || {};
+    const custStats = customerCtx.stats || {};
+
+    return {
+      totalRestaurants: restStats?.totalRestaurants || 24,
+      totalRestaurantsChange: restStats?.totalChange || '+12%',
+      totalFoodItems: (allMenuItems?.length || 24) + extraFoodItems,
+      totalFoodItemsChange: '+12%',
+      totalOrders: orderStats.total ?? orders.length,
+      totalOrdersChange: '+15%',
+      activeOrders: orderStats.active ?? orders.filter((o) => !['Delivered', 'Cancelled', 'Rejected'].includes(o.status)).length,
+      activeOrdersChange: '+10%',
+      deliveredOrders: orderStats.delivered ?? orders.filter((o) => o.status === 'Delivered').length,
+      deliveredOrdersChange: '+18%',
+      totalCustomers: custStats.totalCustomers ?? 30,
+      totalCustomersChange: '+14%',
+    };
+  }, [restStats, allMenuItems, extraFoodItems, orderCtx.stats, customerCtx.stats, orders]);
 
   // Initial dashboard network fetch for browser Network tab visibility
   useEffect(() => {
@@ -188,55 +209,34 @@ export function DashboardProvider({ children }) {
     dashboardService.getOrders().catch(() => {});
   }, []);
 
-  // Real-time live simulation ticker
-  useEffect(() => {
-    if (!isRealtimeActive) return;
+  // Order Status Distribution Calculation (Live from OrderContext)
+  const orderDistribution = useMemo(() => {
+    const total = Math.max(orders.length, 1);
+    const preparingCount = orders.filter((o) =>
+      ['Pending', 'Confirmed', 'Preparing', 'Ready for Pickup'].includes(o.status)
+    ).length;
+    const transitCount = orders.filter((o) => o.status === 'Out for Delivery').length;
+    const deliveredCount = orders.filter((o) => o.status === 'Delivered').length;
+    const cancelledCount = orders.filter((o) =>
+      ['Cancelled', 'Rejected'].includes(o.status)
+    ).length;
 
-    const interval = setInterval(() => {
-      const randomAction = Math.random();
+    const preparingPercent = Math.round((preparingCount / total) * 100);
+    const outForDeliveryPercent = Math.round((transitCount / total) * 100);
+    const deliveredPercent = Math.round((deliveredCount / total) * 100);
+    const cancelledPercent =
+      cancelledCount === 0
+        ? 0
+        : Math.max(0, 100 - preparingPercent - outForDeliveryPercent - deliveredPercent);
 
-      if (randomAction > 0.6) {
-        setOrders((prev) =>
-          prev.map((ord, idx) => {
-            if (idx === 0 && ord.status === 'Preparing') {
-              addActivity({
-                type: 'delivery',
-                action: 'transit',
-                title: 'Order out for delivery',
-                subtitle: `${ord.id} • ${ord.restaurant}`,
-                color: 'emerald',
-                badge: 'In Transit',
-              });
-              return { ...ord, status: 'Out for Delivery', orderTime: 'Just now' };
-            }
-            if (idx === 1 && ord.status === 'Out for Delivery') {
-              addActivity({
-                type: 'delivery',
-                action: 'delivered',
-                title: `${ord.id} delivered`,
-                subtitle: `${ord.restaurant} • ${ord.customer.name}`,
-                color: 'emerald',
-                badge: 'Delivered',
-              });
-              return { ...ord, status: 'Delivered', orderTime: 'Just now' };
-            }
-            return ord;
-          })
-        );
-      }
-    }, 16000);
-
-    return () => clearInterval(interval);
-  }, [isRealtimeActive, addActivity]);
-
-  // Order Status Distribution Calculation
-  const orderDistribution = {
-    total: stats.totalOrders,
-    preparingPercent: 32,
-    outForDeliveryPercent: 40,
-    deliveredPercent: 22,
-    cancelledPercent: 6,
-  };
+    return {
+      total: orders.length,
+      preparingPercent,
+      outForDeliveryPercent,
+      deliveredPercent,
+      cancelledPercent,
+    };
+  }, [orders]);
 
   // Add Restaurant Handler (persists into RestaurantContext and updates Dashboard activities)
   const handleAddRestaurant = (newRest) => {
@@ -252,10 +252,7 @@ export function DashboardProvider({ children }) {
 
   // Add Menu Item Handler
   const handleAddMenuItem = (newItem) => {
-    setStats((prev) => ({
-      ...prev,
-      totalFoodItems: prev.totalFoodItems + 1,
-    }));
+    setExtraFoodItems((c) => c + 1);
     addActivity({
       type: 'menu',
       action: 'item_add',
@@ -282,22 +279,14 @@ export function DashboardProvider({ children }) {
     setIsApplyCouponOpen(false);
   };
 
-  // Update Order Status Handler
+  // Update Order Status Handler (syncs with OrderContext + CustomerContext)
   const handleUpdateOrderStatus = (orderId, newStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus, orderTime: 'Just now' } : o))
-    );
+    if (orderCtx.updateOrderStatus) {
+      orderCtx.updateOrderStatus(orderId, newStatus, `Updated from Dashboard to ${newStatus}`);
+    }
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder((prev) => ({ ...prev, status: newStatus }));
     }
-    addActivity({
-      type: 'order',
-      action: 'order_status',
-      title: `Order ${orderId} updated`,
-      subtitle: `Status changed to: ${newStatus}`,
-      color: 'emerald',
-      badge: newStatus,
-    });
     toast.info(`Order ${orderId} status updated to: ${newStatus}`);
   };
 

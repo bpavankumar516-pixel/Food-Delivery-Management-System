@@ -6,12 +6,16 @@ import {
   Download,
   Printer,
   PieChart,
+  Users,
+  Tag,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { useOrders } from '../context/OrderContext';
 import { useRestaurants } from '../context/RestaurantContext';
+import { useCustomers } from '../context/CustomerContext';
+import { useCoupons } from '../context/CouponContext';
 
 export default function ReportsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,11 +23,12 @@ export default function ReportsPage() {
   const { restaurants } = useRestaurants();
   const { customers } = useCustomers();
   const { coupons } = useCoupons();
+  const [referenceTime] = useState(() => Date.now());
 
   // Filters
   const [timeframe, setTimeframe] = useState('Last 30 Days'); // 'Today' | 'Last 7 Days' | 'Last 30 Days' | 'This Year'
   const [restaurantFilter, setRestaurantFilter] = useState('All');
-  const [reportTab, setReportTab] = useState('overview'); // 'overview' | 'sales' | 'restaurants' | 'items' | 'coupons'
+  const [reportTab, setReportTab] = useState('overview'); // 'overview' | 'customers' | 'coupons'
 
   // Filter eligible orders based on timeframe and restaurant
   const filteredOrders = useMemo(() => {
@@ -33,20 +38,19 @@ export default function ReportsPage() {
       list = list.filter((o) => o.restaurant === restaurantFilter);
     }
 
-    const now = Date.now();
     if (timeframe === 'Today') {
       const oneDay = 24 * 60 * 60 * 1000;
-      list = list.filter((o) => (o.timestamp || now) >= now - oneDay);
+      list = list.filter((o) => (o.timestamp || referenceTime) >= referenceTime - oneDay);
     } else if (timeframe === 'Last 7 Days') {
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      list = list.filter((o) => (o.timestamp || now) >= now - sevenDays);
+      list = list.filter((o) => (o.timestamp || referenceTime) >= referenceTime - sevenDays);
     } else if (timeframe === 'Last 30 Days') {
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-      list = list.filter((o) => (o.timestamp || now) >= now - thirtyDays);
+      list = list.filter((o) => (o.timestamp || referenceTime) >= referenceTime - thirtyDays);
     }
 
     return list;
-  }, [orders, restaurantFilter, timeframe]);
+  }, [orders, restaurantFilter, timeframe, referenceTime]);
 
   // Financial Metrics: Excludes Cancelled and Rejected orders
   const validCompletedOrders = useMemo(() => {
@@ -193,32 +197,29 @@ export default function ReportsPage() {
         <Header onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="p-4 sm:p-6 lg:p-7 max-w-[1720px] mx-auto w-full space-y-6">
-          {/* Top Hero Banner */}
-          <div className="relative rounded-3xl bg-gradient-to-r from-[#05291e] via-[#094130] to-[#0c5942] p-6 sm:p-7 text-white shadow-xl overflow-hidden">
-            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]" />
-            <div className="absolute -right-8 -bottom-10 w-64 h-64 rounded-full bg-emerald-500/15 blur-2xl" />
-
+          {/* Top Pastel Hero Banner (Consistent across Foodix Pages) */}
+          <div className="relative rounded-3xl bg-gradient-to-r from-[#fef8f0] via-[#fffbf6] to-[#f2f7ef] border border-orange-100/80 p-5 sm:p-6 overflow-hidden shadow-2xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-xs flex items-center justify-center text-emerald-300">
-                    <BarChart3 className="w-5 h-5" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+              <div className="flex items-center gap-4">
+                <div className="w-13 h-13 rounded-2xl bg-[#064e3b] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/15">
+                  <BarChart3 className="w-6 h-6" />
+                </div>
+                <div className="space-y-0.5">
+                  <h1 className="text-2xl sm:text-3xl font-black text-[#0f2e22] tracking-tight">
                     Reports & Analytics Hub
                   </h1>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                    Real-time sales telemetry, linked customer spend analytics, coupon redemptions, and fulfillment rates.
+                  </p>
                 </div>
-                <p className="text-xs sm:text-sm text-emerald-200/90 font-medium">
-                  Real-time sales telemetry, net revenue generation, menu performance, and merchant fulfillment metrics.
-                </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs backdrop-blur-md border border-white/15 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 transition-colors cursor-pointer shadow-2xs"
                   title="Print Report"
                 >
                   <Printer className="w-4 h-4" />
@@ -228,7 +229,7 @@ export default function ReportsPage() {
                 <button
                   type="button"
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#ff5722] hover:bg-[#e64a19] text-white font-bold text-xs shadow-lg shadow-orange-600/30 transition-transform active:scale-98 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#ff5722] hover:bg-[#e64a19] text-white font-bold text-xs shadow-md shadow-orange-600/25 transition-transform active:scale-98 cursor-pointer"
                   title="Download CSV dataset"
                 >
                   <Download className="w-4 h-4" />
@@ -238,15 +239,41 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Timeframe & Filter Selector */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          {/* Report View Tabs & Timeframe Selector */}
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: 'overview', label: 'Orders & Sales Overview', icon: BarChart3 },
+                { id: 'customers', label: `Customer Insights (${customers.length})`, icon: Users },
+                { id: 'coupons', label: `Coupon Analytics (${coupons.length})`, icon: Tag },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const active = reportTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setReportTab(tab.id)}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      active
+                        ? 'bg-[#ff5722] text-white shadow-xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
               {['Today', 'Last 7 Days', 'Last 30 Days', 'This Year'].map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setTimeframe(t)}
-                  className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     timeframe === t
                       ? 'bg-[#064e3b] text-white shadow-xs'
                       : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
@@ -255,14 +282,11 @@ export default function ReportsPage() {
                   {t}
                 </button>
               ))}
-            </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-slate-500">Restaurant:</span>
               <select
                 value={restaurantFilter}
                 onChange={(e) => setRestaurantFilter(e.target.value)}
-                className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer"
               >
                 <option value="All">All Restaurants</option>
                 {restaurants.map((r) => (
@@ -498,6 +522,114 @@ export default function ReportsPage() {
               </div>
             </div>
           </div>
+
+          {/* Customer Insights & Coupon Performance Sections (when selected or in overview) */}
+          {reportTab === 'customers' && (
+            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#064e3b]" />
+                  <h3 className="font-black text-base text-slate-900">
+                    Top Customers by Lifetime Spend (Live API)
+                  </h3>
+                </div>
+                <span className="text-xs text-slate-400 font-medium">
+                  {customers.length} total API profiles
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-bold border-y border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">Customer</th>
+                      <th className="py-3 px-4">City</th>
+                      <th className="py-3 px-4 text-center">Orders</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Total Spent</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[...customers]
+                      .sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0))
+                      .slice(0, 10)
+                      .map((cust) => (
+                        <tr key={cust.id} className="hover:bg-slate-50">
+                          <td className="py-3 px-4 flex items-center gap-3">
+                            <img
+                              src={cust.avatar}
+                              alt={cust.fullName}
+                              className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                            />
+                            <div>
+                              <p className="font-bold text-slate-900">{cust.fullName}</p>
+                              <p className="text-[11px] text-slate-400">{cust.email}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-slate-700">{cust.city}</td>
+                          <td className="py-3 px-4 text-center font-bold text-slate-800">
+                            {cust.ordersCount || 0}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                cust.status === 'Blocked'
+                                  ? 'bg-rose-50 text-rose-700'
+                                  : 'bg-emerald-50 text-emerald-700'
+                              }`}
+                            >
+                              {cust.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-black text-emerald-700">
+                            ₹{(cust.totalSpent || 0).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {reportTab === 'coupons' && (
+            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-[#ff5722]" />
+                  <h3 className="font-black text-base text-slate-900">
+                    Promotional Coupon Redemptions
+                  </h3>
+                </div>
+                <span className="text-xs text-slate-400 font-medium">
+                  {coupons.filter((c) => c.status === 'Active').length} active campaigns
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {coupons.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="font-mono font-black text-sm text-[#064e3b]">{c.code}</span>
+                      <p className="text-xs text-slate-600 font-medium mt-0.5">{c.title}</p>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        Min order: ₹{c.minOrderAmount || 0}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="block font-black text-base text-[#ff5722]">
+                        {c.usedCount || 0}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Uses</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

@@ -39,9 +39,9 @@ export default function CouponsPage() {
   const [dateFilter, setDateFilter] = useState('All');
   const [copiedCode, setCopiedCode] = useState(null);
 
-  // Pagination State (10 coupons)
+  // Pagination State (8 cards per page)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
   // Modal States
   const [viewingCoupon, setViewingCoupon] = useState(null);

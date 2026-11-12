@@ -3,51 +3,19 @@ import {
   MapPin,
   Phone,
   Mail,
-  ShoppingBag,
-  ExternalLink,
-  Plus,
   Trash2,
-  Sparkles,
-  ShieldCheck,
-  Crown,
   Eye,
-  KeyRound,
+  ShoppingBag,
 } from 'lucide-react';
 import { useCustomers } from '../../context/CustomerContext';
 
 export default function CustomerCard({ customer }) {
   const {
     openCustomerDetails,
-    openCreateOrderModal,
     openDeleteModal,
-    loginToCustomerPortal,
   } = useCustomers();
 
-  const tierBadges = {
-    VIP: {
-      bg: 'bg-purple-50 text-purple-700 border-purple-200/80',
-      icon: Crown,
-      label: 'VIP Customer',
-    },
-    Gold: {
-      bg: 'bg-amber-50 text-amber-700 border-amber-200/80',
-      icon: Sparkles,
-      label: 'Gold Member',
-    },
-    Regular: {
-      bg: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-      icon: ShieldCheck,
-      label: 'Regular',
-    },
-    New: {
-      bg: 'bg-blue-50 text-blue-700 border-blue-200/80',
-      icon: Sparkles,
-      label: 'New Customer',
-    },
-  };
-
-  const currentTier = tierBadges[customer.tier] || tierBadges.Regular;
-  const TierIcon = currentTier.icon;
+  const isBlocked = customer.status === 'Blocked';
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group">
@@ -68,8 +36,10 @@ export default function CustomerCard({ customer }) {
                 }}
               />
               <span
-                className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 ring-2 ring-white"
-                title="Active Customer"
+                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ring-2 ring-white ${
+                  isBlocked ? 'bg-rose-500' : 'bg-emerald-500'
+                }`}
+                title={isBlocked ? 'Blocked Customer' : 'Active Customer'}
               />
             </div>
 
@@ -90,12 +60,20 @@ export default function CustomerCard({ customer }) {
             </div>
           </div>
 
-          {/* Tier Badge */}
+          {/* Status Badge */}
           <span
-            className={`px-2.5 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 shrink-0 ${currentTier.bg}`}
+            className={`px-2.5 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 shrink-0 ${
+              isBlocked
+                ? 'bg-rose-50 text-rose-600 border-rose-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}
           >
-            <TierIcon className="w-3 h-3" />
-            <span>{customer.tier}</span>
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isBlocked ? 'bg-rose-600' : 'bg-emerald-500'
+              }`}
+            />
+            <span>{isBlocked ? 'Blocked' : 'Active'}</span>
           </span>
         </div>
 
@@ -130,34 +108,15 @@ export default function CustomerCard({ customer }) {
       </div>
 
       {/* Action Buttons Footer */}
-      <div className="px-4 py-3 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between gap-1.5">
+      <div className="px-4 py-3 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => openCustomerDetails(customer)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
-          title="View full customer profile and past orders"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#053b2c] hover:bg-[#074d39] text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+          title="View Customer Details"
         >
-          <Eye className="w-3.5 h-3.5 text-slate-500" />
-          <span>Orders</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => loginToCustomerPortal(customer)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
-          title="Login to Customer Portal as this user"
-        >
-          <KeyRound className="w-3.5 h-3.5" />
-          <span>Portal</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => openCreateOrderModal(customer)}
-          className="p-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#ff5722] border border-orange-200/80 transition-colors cursor-pointer"
-          title="Place new order for this customer"
-        >
-          <Plus className="w-3.5 h-3.5" />
+          <Eye className="w-3.5 h-3.5" />
+          <span>View Details</span>
         </button>
 
         <button

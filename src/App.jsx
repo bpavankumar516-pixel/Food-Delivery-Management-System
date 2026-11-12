@@ -37,10 +37,10 @@ export default function App() {
   return (
     <AuthProvider>
       <RestaurantProvider>
-        <DashboardProvider>
-          <OrderProvider>
-            <CustomerProvider>
-              <CouponProvider>
+        <CouponProvider>
+          <CustomerProvider>
+            <OrderProvider>
+              <DashboardProvider>
                 <NotificationSupportProvider>
                   <SettingsProvider>
                     <BrowserRouter>
@@ -172,10 +172,10 @@ export default function App() {
                     </BrowserRouter>
                   </SettingsProvider>
                 </NotificationSupportProvider>
-              </CouponProvider>
-            </CustomerProvider>
-          </OrderProvider>
-        </DashboardProvider>
+              </DashboardProvider>
+            </OrderProvider>
+          </CustomerProvider>
+        </CouponProvider>
       </RestaurantProvider>
     </AuthProvider>
   );

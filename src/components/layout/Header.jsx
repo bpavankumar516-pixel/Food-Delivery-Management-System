@@ -14,6 +14,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useDashboard } from '../../context/DashboardContext';
 import { useRestaurants } from '../../context/RestaurantContext';
+import { useOrders } from '../../context/OrderContext';
+import { useCustomers } from '../../context/CustomerContext';
 import { useNotificationSupport } from '../../context/NotificationSupportContext';
 import LogoutModal from '../common/LogoutModal';
 import UserAvatar from '../common/UserAvatar';
@@ -26,6 +28,8 @@ export default function Header({ onMenuClick }) {
 
   const isRestaurantsPage = location.pathname.startsWith('/restaurants');
   const isMenuPage = location.pathname.startsWith('/menu');
+  const isOrdersPage = location.pathname.startsWith('/orders');
+  const isCustomersPage = location.pathname.startsWith('/customers');
 
   const { activities, searchQuery: dashSearch, setSearchQuery: setDashSearch } = useDashboard();
   const {
@@ -34,16 +38,26 @@ export default function Header({ onMenuClick }) {
     menuSearchQuery,
     setMenuSearchQuery,
   } = useRestaurants();
+  const { searchQuery: orderSearch, setSearchQuery: setOrderSearch } = useOrders();
+  const { searchQuery: customerSearch, setSearchQuery: setCustomerSearch } = useCustomers();
 
   const searchQuery = isRestaurantsPage
     ? restSearch
     : isMenuPage
     ? menuSearchQuery
+    : isOrdersPage
+    ? orderSearch
+    : isCustomersPage
+    ? customerSearch
     : dashSearch;
   const setSearchQuery = isRestaurantsPage
     ? setRestSearch
     : isMenuPage
     ? setMenuSearchQuery
+    : isOrdersPage
+    ? setOrderSearch
+    : isCustomersPage
+    ? setCustomerSearch
     : setDashSearch;
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -80,6 +94,10 @@ export default function Header({ onMenuClick }) {
                     ? 'Search restaurants by name, cuisine, or location...'
                     : isMenuPage
                     ? 'Search food items by name, category...'
+                    : isOrdersPage
+                    ? 'Search orders by #FDX ID, customer name, city, or dish...'
+                    : isCustomersPage
+                    ? 'Search customers by name, email, phone, or city...'
                     : 'Search restaurants, orders, menu items...'
                 }
                 className="w-full pl-10 pr-9 py-2 sm:py-2.5 bg-white border border-slate-200/90 rounded-2xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0e4d3a] focus:ring-2 focus:ring-[#0e4d3a]/10 shadow-2xs transition-all"

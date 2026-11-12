@@ -6,7 +6,7 @@ import { INITIAL_MENU_MANAGEMENT_ITEMS } from '../data/mockMenuManagementItems';
 import restaurantService from '../services/restaurantService';
 import menuService from '../services/menuService';
 
-const RestaurantContext = createContext(null);
+export const RestaurantContext = createContext(null);
 
 const STORAGE_KEY = 'foodix_restaurants_v3';
 const ACTIVITIES_STORAGE_KEY = 'foodix_activities_v2';

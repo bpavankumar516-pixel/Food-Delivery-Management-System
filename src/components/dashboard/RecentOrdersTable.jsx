@@ -1,21 +1,25 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, ArrowRight } from 'lucide-react';
 import { useDashboard } from '../../context/DashboardContext';
-import { toast } from 'react-toastify';
 
 export default function RecentOrdersTable() {
   const { orders, setSelectedOrder, searchQuery } = useDashboard();
+  const navigate = useNavigate();
 
   const filteredOrders = React.useMemo(() => {
-    if (!searchQuery?.trim()) return orders;
-    const q = searchQuery.toLowerCase().trim();
-    return orders.filter(
-      (order) =>
-        order.id.toLowerCase().includes(q) ||
-        order.customer.name.toLowerCase().includes(q) ||
-        order.restaurant.toLowerCase().includes(q) ||
-        order.status.toLowerCase().includes(q)
-    );
+    const base = !searchQuery?.trim()
+      ? orders
+      : orders.filter((order) => {
+          const q = searchQuery.toLowerCase().trim();
+          return (
+            order.id?.toLowerCase().includes(q) ||
+            order.customer?.name?.toLowerCase().includes(q) ||
+            order.restaurant?.toLowerCase().includes(q) ||
+            order.status?.toLowerCase().includes(q)
+          );
+        });
+    return base.slice(0, 5);
   }, [orders, searchQuery]);
 
   const getStatusBadge = (status) => {
@@ -46,7 +50,7 @@ export default function RecentOrdersTable() {
 
         <button
           type="button"
-          onClick={() => toast.info('Navigating to full Orders management')}
+          onClick={() => navigate('/orders')}
           className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors cursor-pointer group"
         >
           <span>View All Orders</span>

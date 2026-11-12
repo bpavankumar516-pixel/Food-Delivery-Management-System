@@ -4,6 +4,9 @@ import {
   Edit3,
   Trash2,
   Phone,
+  Ban,
+  CheckCircle2,
+  ShoppingBag,
 } from 'lucide-react';
 import { useCustomers } from '../../context/CustomerContext';
 
@@ -12,6 +15,8 @@ export default function CustomerTableView({ customers }) {
     openCustomerDetails,
     openEditModal,
     openDeleteModal,
+    openCreateOrderModal,
+    toggleBlockCustomer,
   } = useCustomers();
 
   const formatJoinedDate = (dateStr, fallbackIndex) => {
@@ -91,19 +96,29 @@ export default function CustomerTableView({ customers }) {
                   ₹{(c.totalSpent || 0).toLocaleString()}
                 </td>
 
-                {/* Status: Active (Green) or Blocked (Blue) matching Image 2 */}
+                {/* Status: Active (Green) or Blocked (Rose) with Clickable Toggle */}
                 <td className="py-3.5 px-4">
-                  {c.status === 'Blocked' ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
-                      <span className="w-2 h-2 rounded-full bg-blue-600" />
-                      <span>Blocked</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span>Active</span>
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleBlockCustomer(c.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                      c.status === 'Blocked'
+                        ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:scale-105'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:scale-105'
+                    }`}
+                    title={
+                      c.status === 'Blocked'
+                        ? 'Customer is Blocked. Click to Unblock'
+                        : 'Customer is Active. Click to Block'
+                    }
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        c.status === 'Blocked' ? 'bg-rose-600' : 'bg-emerald-500'
+                      }`}
+                    />
+                    <span>{c.status === 'Blocked' ? 'Blocked' : 'Active'}</span>
+                  </button>
                 </td>
 
                 {/* Joined On */}
@@ -111,7 +126,7 @@ export default function CustomerTableView({ customers }) {
                   {formatJoinedDate(c.registeredDate, idx)}
                 </td>
 
-                {/* Actions: View (Dark Green), Edit (Orange), Delete (Red) */}
+                {/* Actions: View (Dark Green), Edit (Orange), Block/Unblock, Delete (Red) */}
                 <td className="py-3.5 px-6 text-center">
                   <div className="flex items-center justify-center gap-2">
                     {/* View Details button */}
@@ -124,6 +139,16 @@ export default function CustomerTableView({ customers }) {
                       <Eye className="w-4 h-4" />
                     </button>
 
+                    {/* Place Order button */}
+                    <button
+                      type="button"
+                      onClick={() => openCreateOrderModal(c)}
+                      className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                      title="Place New Order for Customer"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                    </button>
+
                     {/* Edit button */}
                     <button
                       type="button"
@@ -132,6 +157,24 @@ export default function CustomerTableView({ customers }) {
                       title="Edit Customer"
                     >
                       <Edit3 className="w-4 h-4" />
+                    </button>
+
+                    {/* Block / Unblock Quick Action button */}
+                    <button
+                      type="button"
+                      onClick={() => toggleBlockCustomer(c.id)}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shadow-2xs ${
+                        c.status === 'Blocked'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
+                      title={c.status === 'Blocked' ? 'Unblock Customer' : 'Block Customer'}
+                    >
+                      {c.status === 'Blocked' ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        <Ban className="w-4 h-4" />
+                      )}
                     </button>
 
                     {/* Delete button */}
