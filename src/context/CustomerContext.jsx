@@ -42,7 +42,12 @@ export function CustomerProvider({ children }) {
   // Helper to merge live DummyJSON API customers with local customer orders/status overrides
   const mergeCustomersWithLocalState = (prev, apiUsers) => {
     const prevMap = new Map(prev.map((c) => [c.id, c]));
-    const userAdded = prev.filter((c) => c.id.startsWith('cust_user_'));
+    const customOrPortalUsers = prev.filter(
+      (c) => c.id.startsWith('cust_user_') || c.id.startsWith('usr_cust_')
+    );
+    const seedPortalUsers = INITIAL_CUSTOMERS.filter(
+      (c) => c.id.startsWith('usr_cust_') && !prevMap.has(c.id)
+    );
 
     const mergedApiUsers = apiUsers.map((u) => {
       const existing = prevMap.get(u.id);
@@ -63,7 +68,7 @@ export function CustomerProvider({ children }) {
       };
     });
 
-    return [...userAdded, ...mergedApiUsers];
+    return [...customOrPortalUsers, ...seedPortalUsers, ...mergedApiUsers];
   };
 
   // Initial fetch from DummyJSON Users API (visible in browser Network tab)
@@ -413,6 +418,55 @@ export function CustomerProvider({ children }) {
     );
   };
 
+  // Ensure authenticated Customer portal user has a linked profile in CustomerContext
+  const ensureCustomerAccount = (authUser) => {
+    if (!authUser?.email) return null;
+    const normalizedEmail = authUser.email.trim().toLowerCase();
+    const existing = customers.find(
+      (c) => c.email?.toLowerCase() === normalizedEmail || c.id === authUser.id
+    );
+    if (existing) return existing;
+
+    const newProfile = {
+      id: authUser.id || `cust_user_${Date.now()}`,
+      dummyId: Math.floor(Math.random() * 900) + 100,
+      firstName: (authUser.name || 'Foodix').split(' ')[0],
+      lastName: (authUser.name || 'Customer').split(' ').slice(1).join(' ') || '',
+      fullName: authUser.name || 'Foodix Customer',
+      email: normalizedEmail,
+      phone: authUser.phone || '+91 98765 01234',
+      username: normalizedEmail.split('@')[0],
+      avatar:
+        authUser.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          authUser.name || 'Customer'
+        )}&background=163A2D&color=fff&bold=true`,
+      gender: 'unspecified',
+      age: 28,
+      address: authUser.location || '100 Feet Road, Indiranagar',
+      city: authUser.city || 'Bengaluru',
+      state: 'Karnataka',
+      postalCode: '560038',
+      company: 'Foodix Member',
+      role: authUser.title || 'Foodie Club VIP',
+      tier: 'VIP',
+      status: 'Active',
+      totalSpent: 0,
+      ordersCount: 0,
+      favoriteCuisine: 'Biryani & Pizza',
+      registeredDate: authUser.createdAt || new Date().toISOString(),
+      lastActive: 'Active now',
+      orders: [],
+    };
+
+    setCustomers((prev) => {
+      if (prev.some((c) => c.email?.toLowerCase() === normalizedEmail)) return prev;
+      return [newProfile, ...prev];
+    });
+    customerService.createCustomer(newProfile);
+    return newProfile;
+  };
+
   return (
     <CustomerContext.Provider
       value={{
@@ -464,6 +518,7 @@ export function CustomerProvider({ children }) {
         closeCreateOrderModal,
         recordCustomerOrder,
         syncCustomerOrderStatus,
+        ensureCustomerAccount,
         openDeleteModal,
         closeDeleteModal,
         confirmDelete,

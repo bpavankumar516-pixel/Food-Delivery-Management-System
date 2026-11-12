@@ -245,6 +245,78 @@ export function NotificationSupportProvider({ children }) {
     setNotifications((prev) => [newNotif, ...prev]);
   };
 
+  // Create new Customer Support Ticket
+  const createSupportTicket = ({
+    customerName,
+    customerEmail,
+    customerAvatar,
+    orderId = '',
+    subject,
+    category = 'Order Issue',
+    priority = 'Medium',
+    message,
+  }) => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const ticketId = `TCK-${Math.floor(510 + Math.random() * 480)}`;
+    const newTicket = {
+      id: ticketId,
+      customerName: customerName || 'Customer',
+      customerEmail: customerEmail || 'customer@foodix.com',
+      customerAvatar:
+        customerAvatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName || 'C')}&background=163A2D&color=fff`,
+      orderId,
+      subject: subject.trim(),
+      category,
+      priority,
+      status: 'Open',
+      createdAt: `Today, ${timeStr}`,
+      timestamp: Date.now(),
+      messages: [
+        {
+          sender: 'customer',
+          senderName: customerName || 'Customer',
+          text: message.trim(),
+          timestamp: timeStr,
+        },
+      ],
+    };
+
+    setTickets((prev) => [newTicket, ...prev]);
+    addNotification({
+      title: `Support Ticket ${ticketId} Created`,
+      message: `${subject.trim()}${orderId ? ` (${orderId})` : ''}`,
+      type: 'support',
+      customerEmail,
+    });
+    toast.success(`Support ticket ${ticketId} submitted! Our team will respond shortly.`);
+    return newTicket;
+  };
+
+  // Customer Follow-up Reply on Support Ticket
+  const addCustomerReply = (ticketId, replyText, customerName = 'Customer') => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== ticketId) return t;
+        return {
+          ...t,
+          status: t.status === 'Resolved' ? 'Open' : t.status,
+          messages: [
+            ...(t.messages || []),
+            {
+              sender: 'customer',
+              senderName: customerName,
+              text: replyText,
+              timestamp: timeStr,
+            },
+          ],
+        };
+      })
+    );
+    toast.success('Follow-up message sent to Foodix Support.');
+  };
+
   // Support Ticket Actions
   const addTicketReply = (ticketId, replyText, adminName = 'Pavan Kumar (Admin)') => {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -290,6 +362,8 @@ export function NotificationSupportProvider({ children }) {
         clearAllNotifications,
         addNotification,
         tickets,
+        createSupportTicket,
+        addCustomerReply,
         addTicketReply,
         updateTicketStatus,
       }}

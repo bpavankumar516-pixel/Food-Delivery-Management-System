@@ -29,41 +29,24 @@ const DEFAULT_USERS = [
     createdAt: "2026-01-10T08:00:00Z",
   },
   {
-    id: "usr_rest_002",
-    name: "Mario Rossi",
-    email: "restaurant@foodix.com",
-    password: "password123",
-    role: "Restaurant",
-    restaurantName: "Bella Vista Trattoria",
-    phone: "+1 (555) 014-9988",
-    avatar:
-      "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&q=80&w=200",
-    title: "Head Chef & Owner",
-    createdAt: "2026-02-15T10:30:00Z",
-  },
-  {
-    id: "usr_rider_003",
-    name: "Alex Chen",
-    email: "delivery@foodix.com",
-    password: "password123",
-    role: "Delivery Partner",
-    vehicle: "Electric Scooter (FDX-99)",
-    phone: "+1 (555) 018-7722",
-    avatar:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200",
-    title: "Top Rated Courier (4.9★)",
-    createdAt: "2026-03-01T12:00:00Z",
-  },
-  {
     id: "usr_cust_004",
     name: "Emily Watson",
     email: "customer@foodix.com",
     password: "password123",
     role: "Customer",
-    phone: "+1 (555) 012-3456",
+    phone: "+91 98765 01234",
+    location: "Indiranagar, Bengaluru",
+    city: "Bengaluru",
+    bio: "Food enthusiast exploring Bengaluru's best biryanis, artisanal pizzas, and quick comfort meals.",
     avatar:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200",
     title: "Foodie Club VIP",
+    useCustomAvatar: true,
+    notifications: {
+      emailAlerts: true,
+      orderUpdates: true,
+      promoOffers: true,
+    },
     createdAt: "2026-03-20T14:15:00Z",
   },
 ];
@@ -194,10 +177,13 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        // Optional role match verification - adapt role if user selected a different tab
+        // Enforce only Admin and Customer roles across platform
+        const normalizedRole =
+          (role || foundUser.role) === "Admin" ? "Admin" : "Customer";
+
         const authenticatedUser = {
           ...foundUser,
-          role: role || foundUser.role, // Allow switched role or user's assigned role
+          role: normalizedRole,
           lastLogin: new Date().toISOString(),
         };
 

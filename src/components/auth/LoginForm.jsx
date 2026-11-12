@@ -9,8 +9,6 @@ import {
   Headphones,
   ArrowRight,
   UserCheck,
-  Store,
-  Bike,
   Users,
   Sparkles,
 } from "lucide-react";
@@ -88,7 +86,7 @@ export default function LoginForm() {
       });
 
       toast.success(`Welcome back, ${user.name}! Logged in as ${user.role}.`);
-      navigate("/dashboard");
+      navigate(user.role === "Admin" ? "/dashboard" : "/customer/home");
     } catch (error) {
       toast.error(
         error.message || "Invalid email or password. Please try again.",
@@ -103,7 +101,7 @@ export default function LoginForm() {
       setIsSubmitting(true);
       const user = await loginWithGoogle(selectedRole);
       toast.success(`Google authentication successful! Welcome, ${user.name}.`);
-      navigate("/dashboard");
+      navigate(user.role === "Admin" ? "/dashboard" : "/customer/home");
     } catch {
       toast.error("Google login failed. Please try again.");
     } finally {

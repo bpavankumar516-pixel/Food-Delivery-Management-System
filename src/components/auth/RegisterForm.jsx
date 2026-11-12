@@ -11,8 +11,6 @@ import {
   Headphones,
   ArrowRight,
   UserCheck,
-  Store,
-  Bike,
   Users,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -63,7 +61,7 @@ export default function RegisterForm() {
       toast.success(
         `Account created successfully! Welcome to Foodix, ${newUser.name}.`
       );
-      navigate('/dashboard');
+      navigate(newUser.role === 'Admin' ? '/dashboard' : '/customer/home');
     } catch (error) {
       toast.error(error.message || 'Registration failed. Please try again.');
     } finally {
@@ -76,7 +74,7 @@ export default function RegisterForm() {
       setIsSubmitting(true);
       const user = await loginWithGoogle(selectedRole);
       toast.success(`Google sign up successful! Welcome, ${user.name}.`);
-      navigate('/dashboard');
+      navigate(user.role === 'Admin' ? '/dashboard' : '/customer/home');
     } catch {
       toast.error('Google registration failed. Please try again.');
     } finally {
@@ -120,13 +118,11 @@ export default function RegisterForm() {
           </p>
         </div>
 
-        {/* Role Selector Tabs (Admin | Restaurant | Delivery | Customer) */}
-        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/90 rounded-2xl mb-3 border border-slate-200/60 select-none">
+        {/* Role Selector Tabs (Admin | Customer) */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-2xl mb-3 border border-slate-200/60 select-none">
           {[
-            { id: 'Admin', label: 'Admin', icon: UserCheck },
-            { id: 'Restaurant', label: 'Restaurant', icon: Store },
-            { id: 'Delivery Partner', label: 'Delivery', icon: Bike },
-            { id: 'Customer', label: 'Customer', icon: Users },
+            { id: 'Admin', label: 'Admin Portal', icon: UserCheck },
+            { id: 'Customer', label: 'Customer Portal', icon: Users },
           ].map((tab) => {
             const Icon = tab.icon;
             const isSelected = selectedRole === tab.id;
