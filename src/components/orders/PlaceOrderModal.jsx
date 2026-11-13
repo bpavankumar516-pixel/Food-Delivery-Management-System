@@ -16,12 +16,14 @@ import { useCustomers } from '../../context/CustomerContext';
 import { useRestaurants } from '../../context/RestaurantContext';
 import { useOrders } from '../../context/OrderContext';
 import { useCoupons } from '../../context/CouponContext';
+import { useSettings } from '../../context/SettingsContext';
 
 export default function PlaceOrderModal({ isOpen, onClose }) {
   const { customers } = useCustomers();
   const { restaurants, allMenuItems } = useRestaurants();
   const { createOrder } = useOrders();
   const { coupons, calculateDiscount, recordCouponUsage } = useCoupons();
+  const { settings } = useSettings();
 
   const activeCustomers = useMemo(
     () => customers.filter((c) => c.status !== 'Blocked'),
@@ -139,9 +141,20 @@ export default function PlaceOrderModal({ isOpen, onClose }) {
     }
   };
 
-  const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
-  const deliveryFee = selectedRestaurant?.deliveryFee ?? 35;
-  const tax = Math.round(Math.max(subtotal - discount, 0) * 0.05);
+  const discount =
+    appliedCoupon && appliedCoupon.code?.toUpperCase() !== 'FREEDLV'
+      ? Math.min(appliedCoupon.discount || 0, subtotal)
+      : 0;
+  const freeDeliveryThreshold = Number(settings?.delivery?.freeDeliveryThreshold ?? 499);
+  const isFreeDelivery =
+    cartItems.length === 0 ||
+    appliedCoupon?.code?.toUpperCase() === 'FREEDLV' ||
+    (freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold);
+  const baseDeliveryFee = Number(selectedRestaurant?.deliveryFee ?? 35);
+  const deliveryFee = isFreeDelivery ? 0 : baseDeliveryFee;
+  const isTaxEnabled = settings?.tax?.isTaxEnabled !== false;
+  const gstPct = isTaxEnabled ? Number(settings?.tax?.gstPercentage ?? 5) : 0;
+  const tax = Math.round(Math.max(subtotal - discount, 0) * (gstPct / 100));
   const grandTotal = Math.max(subtotal - discount + deliveryFee + tax, 0);
 
   const handleSubmit = async (e) => {
@@ -459,11 +472,15 @@ export default function PlaceOrderModal({ isOpen, onClose }) {
               </div>
             )}
             <div className="flex justify-between text-slate-600">
-              <span>Delivery Fee</span>
-              <span>₹{deliveryFee}</span>
+              <span>
+                Delivery Fee {isFreeDelivery && cartItems.length > 0 ? '(Free Delivery Applied)' : ''}
+              </span>
+              <span className={deliveryFee === 0 && cartItems.length > 0 ? 'font-bold text-emerald-700' : ''}>
+                {deliveryFee === 0 && cartItems.length > 0 ? 'FREE' : `₹${deliveryFee}`}
+              </span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>GST (5%)</span>
+              <span>GST ({gstPct}%)</span>
               <span>₹{tax}</span>
             </div>
             <div className="pt-2 border-t border-emerald-200 flex justify-between font-black text-sm text-emerald-950">

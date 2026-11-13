@@ -8,20 +8,32 @@ import { useCoupons } from './CouponContext';
 import { useNotificationSupport } from './NotificationSupportContext';
 import { useSettings } from './SettingsContext';
 import { generateDefaultMenuForRestaurant } from '../data/mockMenuItems';
+import {
+  detectCurrentPosition,
+  reverseGeocode,
+  searchAddressSuggestions,
+  getRestaurantGeoMeta,
+} from '../services/locationService';
+
+const DEFAULT_CUSTOMER_PREFERENCES = {
+  vegOnlyDefault: false,
+  contactlessDelivery: true,
+  orderUpdates: true,
+  promoOffers: true,
+  emailAlerts: true,
+  saveSearchHistory: true,
+  shareAnalytics: false,
+  language: 'English',
+};
 
 const CustomerPortalContext = createContext(null);
 
-const AVAILABLE_LOCATIONS = [
-  'Bengaluru',
-  'Indiranagar, Bengaluru',
-  'Koramangala, Bengaluru',
-  'HSR Layout, Bengaluru',
-  'Whitefield, Bengaluru',
-  'Hyderabad',
-  'Mumbai',
-  'New Delhi',
-  'Pune',
-];
+function formatSelectedLocationLabel(loc) {
+  if (!loc) return '';
+  if (loc.displayName) return loc.displayName;
+  const parts = [loc.area || loc.locality, loc.city].filter(Boolean);
+  return parts.join(', ') || loc.fullAddress || '';
+}
 
 function safeReadStorage(key, fallback) {
   try {
@@ -44,7 +56,7 @@ function safeWriteStorage(key, value) {
 export function CustomerPortalProvider({ children }) {
   const { user } = useAuth();
   const { restaurants, menusByRestaurant, allMenuItems } = useRestaurants();
-  const { orders, createOrder, cancelOrder } = useOrders();
+  const { orders, createOrder, cancelOrder, refreshOrdersFromApi } = useOrders();
   const { customers, ensureCustomerAccount } = useCustomers();
   const { coupons, calculateDiscount, recordCouponUsage } = useCoupons();
   const {
@@ -71,7 +83,7 @@ export function CustomerPortalProvider({ children }) {
     if (isCustomerUser && user?.email && ensureCustomerAccount) {
       ensureCustomerAccount(user);
     }
-  }, [isCustomerUser, user?.id, user?.email]);
+  }, [isCustomerUser, user, ensureCustomerAccount]);
 
   const linkedCustomer = useMemo(() => {
     if (!user?.email) return null;
@@ -84,7 +96,7 @@ export function CustomerPortalProvider({ children }) {
   // Storage keys scoped per customer account
   const KEYS = useMemo(
     () => ({
-      location: `foodix_cust_loc_${userKey}`,
+      liveLocation: `foodix_cust_live_loc_${userKey}`,
       cart: `foodix_cust_cart_${userKey}`,
       coupon: `foodix_cust_coupon_${userKey}`,
       favRests: `foodix_cust_fav_rests_${userKey}`,
@@ -98,40 +110,12 @@ export function CustomerPortalProvider({ children }) {
     [userKey]
   );
 
-  // Build default addresses for current customer
-  const defaultSeedAddresses = useMemo(
-    () => [
-      {
-        id: 'addr_home_1',
-        label: 'Home',
-        fullName: user?.name || 'Emily Watson',
-        phone: user?.phone || '+91 98765 01234',
-        street: linkedCustomer?.address || '620 High Street, 100 Feet Road, Indiranagar',
-        landmark: 'Near Metro Station',
-        city: linkedCustomer?.city || user?.city || 'Bengaluru',
-        state: linkedCustomer?.state || 'Karnataka',
-        pincode: linkedCustomer?.postalCode || '560038',
-        isDefault: true,
-      },
-      {
-        id: 'addr_work_2',
-        label: 'Work',
-        fullName: user?.name || 'Emily Watson',
-        phone: user?.phone || '+91 98765 01234',
-        street: 'Tower B, 4th Floor, Prestige Tech Park, Outer Ring Road',
-        landmark: 'Opposite Bellandur Gate',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        pincode: '560103',
-        isDefault: false,
-      },
-    ],
-    [user?.name, user?.phone, user?.city, linkedCustomer?.address, linkedCustomer?.city, linkedCustomer?.state, linkedCustomer?.postalCode]
+  const [liveLocation, setLiveLocation] = useState(() =>
+    safeReadStorage(KEYS.liveLocation, null)
   );
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState(null);
 
-  const [selectedLocation, setSelectedLocation] = useState(() =>
-    safeReadStorage(KEYS.location, 'Bengaluru')
-  );
   const [cart, setCart] = useState(() =>
     safeReadStorage(KEYS.cart, { restaurantId: null, restaurantName: '', items: [] })
   );
@@ -139,64 +123,52 @@ export function CustomerPortalProvider({ children }) {
     safeReadStorage(KEYS.coupon, '')
   );
   const [favoriteRestaurantIds, setFavoriteRestaurantIds] = useState(() =>
-    safeReadStorage(KEYS.favRests, ['rest_001', 'rest_002'])
+    safeReadStorage(KEYS.favRests, [])
   );
   const [favoriteDishIds, setFavoriteDishIds] = useState(() =>
-    safeReadStorage(KEYS.favDishes, ['dish_ref_01', 'dish_ref_02'])
+    safeReadStorage(KEYS.favDishes, [])
   );
-  const [addresses, setAddresses] = useState(() =>
-    safeReadStorage(KEYS.addresses, defaultSeedAddresses)
-  );
+  const [addresses, setAddresses] = useState(() => safeReadStorage(KEYS.addresses, []));
   const [selectedAddressId, setSelectedAddressId] = useState(() =>
-    safeReadStorage(KEYS.selectedAddr, 'addr_home_1')
+    safeReadStorage(KEYS.selectedAddr, '')
   );
   const [recentlyViewedIds, setRecentlyViewedIds] = useState(() =>
-    safeReadStorage(KEYS.recentViews, ['rest_001', 'rest_002', 'rest_003'])
+    safeReadStorage(KEYS.recentViews, [])
   );
   const [recentSearches, setRecentSearches] = useState(() =>
-    safeReadStorage(KEYS.recentSearches, ['Margherita Pizza', 'Biryani', 'Burger King'])
+    safeReadStorage(KEYS.recentSearches, [])
   );
-  const [preferences, setPreferences] = useState(() =>
-    safeReadStorage(KEYS.prefs, {
-      vegOnlyDefault: false,
-      contactlessDelivery: true,
-      orderUpdates: true,
-      promoOffers: true,
-      emailAlerts: true,
-      saveSearchHistory: true,
-      shareAnalytics: false,
-    })
-  );
+  const [preferences, setPreferences] = useState(() => ({
+    ...DEFAULT_CUSTOMER_PREFERENCES,
+    ...safeReadStorage(KEYS.prefs, {}),
+  }));
 
   // Reload customer-specific state when user switches session
   useEffect(() => {
-    setSelectedLocation(safeReadStorage(KEYS.location, user?.city || 'Bengaluru'));
+    setLiveLocation(safeReadStorage(KEYS.liveLocation, null));
+    setLocationError(null);
     setCart(safeReadStorage(KEYS.cart, { restaurantId: null, restaurantName: '', items: [] }));
     setAppliedCouponCode(safeReadStorage(KEYS.coupon, ''));
-    setFavoriteRestaurantIds(safeReadStorage(KEYS.favRests, ['rest_001', 'rest_002']));
-    setFavoriteDishIds(safeReadStorage(KEYS.favDishes, ['dish_ref_01', 'dish_ref_02']));
-    const savedAddrs = safeReadStorage(KEYS.addresses, defaultSeedAddresses);
+    setFavoriteRestaurantIds(safeReadStorage(KEYS.favRests, []));
+    setFavoriteDishIds(safeReadStorage(KEYS.favDishes, []));
+    const savedAddrs = safeReadStorage(KEYS.addresses, []);
     setAddresses(savedAddrs);
     setSelectedAddressId(
-      safeReadStorage(KEYS.selectedAddr, savedAddrs.find((a) => a.isDefault)?.id || savedAddrs[0]?.id || '')
+      safeReadStorage(
+        KEYS.selectedAddr,
+        savedAddrs.find((a) => a.isDefault)?.id || savedAddrs[0]?.id || ''
+      )
     );
-    setRecentlyViewedIds(safeReadStorage(KEYS.recentViews, ['rest_001', 'rest_002', 'rest_003']));
-    setRecentSearches(safeReadStorage(KEYS.recentSearches, ['Margherita Pizza', 'Biryani', 'Burger King']));
-    setPreferences(
-      safeReadStorage(KEYS.prefs, {
-        vegOnlyDefault: false,
-        contactlessDelivery: true,
-        orderUpdates: true,
-        promoOffers: true,
-        emailAlerts: true,
-        saveSearchHistory: true,
-        shareAnalytics: false,
-      })
-    );
+    setRecentlyViewedIds(safeReadStorage(KEYS.recentViews, []));
+    setRecentSearches(safeReadStorage(KEYS.recentSearches, []));
+    setPreferences({
+      ...DEFAULT_CUSTOMER_PREFERENCES,
+      ...safeReadStorage(KEYS.prefs, {}),
+    });
   }, [KEYS]);
 
   // Persist customer state to LocalStorage
-  useEffect(() => safeWriteStorage(KEYS.location, selectedLocation), [KEYS.location, selectedLocation]);
+  useEffect(() => safeWriteStorage(KEYS.liveLocation, liveLocation), [KEYS.liveLocation, liveLocation]);
   useEffect(() => safeWriteStorage(KEYS.cart, cart), [KEYS.cart, cart]);
   useEffect(() => safeWriteStorage(KEYS.coupon, appliedCouponCode), [KEYS.coupon, appliedCouponCode]);
   useEffect(() => safeWriteStorage(KEYS.favRests, favoriteRestaurantIds), [KEYS.favRests, favoriteRestaurantIds]);
@@ -207,8 +179,9 @@ export function CustomerPortalProvider({ children }) {
   useEffect(() => safeWriteStorage(KEYS.recentSearches, recentSearches), [KEYS.recentSearches, recentSearches]);
   useEffect(() => safeWriteStorage(KEYS.prefs, preferences), [KEYS.prefs, preferences]);
 
-  // Conflict modal & active dish detail modal states
+  // Conflict modal, location modal & active dish detail modal states
   const [cartConflict, setCartConflict] = useState(null);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [activeFoodModal, setActiveFoodModal] = useState(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
@@ -290,10 +263,134 @@ export function CustomerPortalProvider({ children }) {
     return Array.from(map.values());
   }, [allMenuItems, restaurants, getMergedMenuForRestaurant]);
 
+  // Derived header label from user's liveLocation (never hardcoded)
+  const selectedLocation = useMemo(
+    () => formatSelectedLocationLabel(liveLocation),
+    [liveLocation]
+  );
+
+  // Location-aware enrichment of live Admin restaurants
+  const locationAwareRestaurants = useMemo(() => {
+    return restaurants.map((r) => {
+      const geo = getRestaurantGeoMeta(r, liveLocation);
+      return {
+        ...r,
+        ...geo,
+        deliveryTime: liveLocation ? geo.effectiveEta : r.deliveryTime,
+      };
+    });
+  }, [restaurants, liveLocation]);
+
+  // Save a detected or manually chosen location as a reusable delivery address
+  const saveLocationAsAddress = useCallback(
+    (locObj, label = 'Current Location', makeDefault = true) => {
+      if (!locObj) return null;
+      const streetVal =
+        locObj.street ||
+        locObj.area ||
+        locObj.locality ||
+        locObj.fullAddress?.split(',')[0] ||
+        locObj.displayName ||
+        'Detected Street';
+      const cityVal = locObj.city || locObj.locality || locObj.displayName || '';
+      const newAddr = {
+        id: `addr_${Date.now()}`,
+        label,
+        fullName: user?.name || 'Customer',
+        phone: user?.phone || '',
+        street: streetVal,
+        landmark: locObj.locality && locObj.locality !== streetVal ? locObj.locality : '',
+        city: cityVal,
+        state: locObj.state || '',
+        pincode: locObj.pincode || '',
+        lat: locObj.lat ?? null,
+        lng: locObj.lng ?? null,
+        fullAddress: locObj.fullAddress || [streetVal, cityVal, locObj.state, locObj.pincode].filter(Boolean).join(', '),
+        isDefault: !!makeDefault,
+      };
+
+      setAddresses((prev) => {
+        const filtered = prev.filter(
+          (a) =>
+            !(
+              a.label === label &&
+              a.street?.toLowerCase() === streetVal.toLowerCase() &&
+              a.city?.toLowerCase() === cityVal.toLowerCase()
+            )
+        );
+        const base = newAddr.isDefault ? filtered.map((a) => ({ ...a, isDefault: false })) : filtered;
+        return [newAddr, ...base];
+      });
+      if (makeDefault) {
+        setSelectedAddressId(newAddr.id);
+      }
+      return newAddr;
+    },
+    [user?.name, user?.phone]
+  );
+
+  // Detect live GPS location via Browser Geolocation + Reverse Geocoding
+  const detectCurrentLocation = useCallback(
+    async ({ saveAsAddress = false } = {}) => {
+      setLocationLoading(true);
+      setLocationError(null);
+      try {
+        const coords = await detectCurrentPosition();
+        const resolved = await reverseGeocode(coords.lat, coords.lng);
+        const payload = {
+          ...resolved,
+          accuracy: coords.accuracy,
+          updatedAt: Date.now(),
+        };
+        setLiveLocation(payload);
+        if (saveAsAddress) {
+          saveLocationAsAddress(payload, 'Current Location', true);
+        }
+        toast.success(`Location updated: ${formatSelectedLocationLabel(payload)}`);
+        return payload;
+      } catch (err) {
+        const errObj = {
+          code: err?.code || 'LOCATION_ERROR',
+          message: err?.message || 'Unable to detect your current location.',
+        };
+        setLocationError(errObj);
+        toast.error(errObj.message);
+        return null;
+      } finally {
+        setLocationLoading(false);
+      }
+    },
+    [saveLocationAsAddress]
+  );
+
+  // Select a manual address from search suggestions or direct input
+  const selectManualLocation = useCallback(
+    (locObj, { saveAsAddress = false, label = 'Delivery Point' } = {}) => {
+      if (!locObj) return;
+      const payload = {
+        ...locObj,
+        source: locObj.source || 'manual',
+        updatedAt: Date.now(),
+      };
+      setLiveLocation(payload);
+      setLocationError(null);
+      if (saveAsAddress) {
+        saveLocationAsAddress(payload, label, true);
+      }
+      toast.success(`Delivery location set to ${formatSelectedLocationLabel(payload)}`);
+    },
+    [saveLocationAsAddress]
+  );
+
+  const clearLocation = useCallback(() => {
+    setLiveLocation(null);
+    setLocationError(null);
+  }, []);
+
   // Hydrate cart items against live Admin restaurant & dish data (real-time price & stock sync)
   const cartRestaurant = useMemo(
-    () => restaurants.find((r) => r.id === cart.restaurantId) || null,
-    [restaurants, cart.restaurantId]
+    () => locationAwareRestaurants.find((r) => r.id === cart.restaurantId) || null,
+    [locationAwareRestaurants, cart.restaurantId]
   );
 
   const hydratedCartItems = useMemo(() => {
@@ -347,7 +444,11 @@ export function CustomerPortalProvider({ children }) {
     }
 
     const freeThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
-    const baseFee = cartRestaurant?.deliveryFee ?? settings?.delivery?.baseDeliveryFee ?? 35;
+    const baseFee =
+      cartRestaurant?.effectiveDeliveryFee ??
+      cartRestaurant?.deliveryFee ??
+      settings?.delivery?.baseDeliveryFee ??
+      35;
     let deliveryFee = subtotal >= freeThreshold ? 0 : baseFee;
 
     let discount = 0;
@@ -514,21 +615,25 @@ export function CustomerPortalProvider({ children }) {
 
   // Favorites & Wishlist
   const toggleFavoriteRestaurant = (restaurantId) => {
+    let willExist = false;
     setFavoriteRestaurantIds((prev) => {
       const exists = prev.includes(restaurantId);
-      toast.info(exists ? 'Removed restaurant from favorites' : 'Saved restaurant to favorites!');
+      willExist = !exists;
       return exists ? prev.filter((id) => id !== restaurantId) : [restaurantId, ...prev];
     });
+    toast.info(willExist ? 'Saved restaurant to favorites!' : 'Removed restaurant from favorites');
   };
 
   const toggleFavoriteDish = (dish) => {
     const id = typeof dish === 'string' ? dish : dish?.id;
     if (!id) return;
+    let willExist = false;
     setFavoriteDishIds((prev) => {
       const exists = prev.includes(id);
-      toast.info(exists ? 'Removed dish from wishlist' : 'Saved dish to wishlist!');
+      willExist = !exists;
       return exists ? prev.filter((dId) => dId !== id) : [id, ...prev];
     });
+    toast.info(willExist ? 'Saved dish to wishlist!' : 'Removed dish from wishlist');
   };
 
   // Recently Viewed Restaurants & Search History
@@ -568,12 +673,14 @@ export function CustomerPortalProvider({ children }) {
       id: `addr_${Date.now()}`,
       label: addrData.label || 'Home',
       fullName: addrData.fullName || user?.name || 'Customer',
-      phone: addrData.phone || user?.phone || '+91 98765 01234',
+      phone: addrData.phone || user?.phone || '',
       street: addrData.street,
       landmark: addrData.landmark || '',
-      city: addrData.city || selectedLocation,
-      state: addrData.state || 'Karnataka',
-      pincode: addrData.pincode || '560038',
+      city: addrData.city || liveLocation?.city || '',
+      state: addrData.state || liveLocation?.state || '',
+      pincode: addrData.pincode || liveLocation?.pincode || '',
+      lat: addrData.lat ?? liveLocation?.lat ?? null,
+      lng: addrData.lng ?? liveLocation?.lng ?? null,
       isDefault: !!addrData.isDefault || addresses.length === 0,
     };
 
@@ -582,6 +689,23 @@ export function CustomerPortalProvider({ children }) {
       return [newAddr, ...base];
     });
     setSelectedAddressId(newAddr.id);
+    if (newAddr.isDefault && (newAddr.city || newAddr.street)) {
+      setLiveLocation((prev) => ({
+        displayName: [newAddr.street, newAddr.city].filter(Boolean).slice(0, 2).join(', '),
+        area: newAddr.street,
+        locality: newAddr.landmark || newAddr.city,
+        city: newAddr.city,
+        state: newAddr.state,
+        pincode: newAddr.pincode,
+        fullAddress: [newAddr.street, newAddr.landmark, newAddr.city, newAddr.state, newAddr.pincode]
+          .filter(Boolean)
+          .join(', '),
+        lat: newAddr.lat ?? prev?.lat ?? null,
+        lng: newAddr.lng ?? prev?.lng ?? null,
+        source: 'manual',
+        updatedAt: Date.now(),
+      }));
+    }
     toast.success('Delivery address saved!');
     return newAddr;
   };
@@ -617,8 +741,22 @@ export function CustomerPortalProvider({ children }) {
     );
     setSelectedAddressId(addrId);
     const chosen = addresses.find((a) => a.id === addrId);
-    if (chosen?.city) {
-      setSelectedLocation(chosen.city);
+    if (chosen) {
+      setLiveLocation({
+        displayName: [chosen.street, chosen.city].filter(Boolean).slice(0, 2).join(', '),
+        area: chosen.street,
+        locality: chosen.landmark || chosen.city,
+        city: chosen.city,
+        state: chosen.state,
+        pincode: chosen.pincode,
+        fullAddress: [chosen.street, chosen.landmark, chosen.city, chosen.state, chosen.pincode]
+          .filter(Boolean)
+          .join(', '),
+        lat: chosen.lat ?? null,
+        lng: chosen.lng ?? null,
+        source: 'saved',
+        updatedAt: Date.now(),
+      });
     }
     toast.success('Default delivery address updated!');
   };
@@ -680,16 +818,25 @@ export function CustomerPortalProvider({ children }) {
     setIsPlacingOrder(true);
     try {
       const custRecord = ensureCustomerAccount ? ensureCustomerAccount(user) : linkedCustomer;
-      const fullAddress = `${deliveryAddrObj.street}${
-        deliveryAddrObj.landmark ? `, ${deliveryAddrObj.landmark}` : ''
-      }, ${deliveryAddrObj.city}, ${deliveryAddrObj.state} - ${deliveryAddrObj.pincode}`;
+      const fullAddress = [
+        deliveryAddrObj.street,
+        deliveryAddrObj.landmark,
+        deliveryAddrObj.city,
+        deliveryAddrObj.state,
+      ]
+        .filter(Boolean)
+        .join(', ')
+        .concat(deliveryAddrObj.pincode ? ` - ${deliveryAddrObj.pincode}` : '');
 
-      const uniqueOrderNum = Math.floor(5000 + Math.random() * 4900);
-      const uniqueId = `#FDX-${uniqueOrderNum}`;
+      const orderDateStr = new Date().toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
 
       const created = await createOrder({
-        id: uniqueId,
-        rawId: `FDX-${uniqueOrderNum}`,
+        source: 'Customer Portal',
+        orderDate: orderDateStr,
         customerId: custRecord?.id || user?.id,
         customer: {
           id: custRecord?.id || user?.id,
@@ -725,19 +872,23 @@ export function CustomerPortalProvider({ children }) {
         estimatedDeliveryTime: cartRestaurant?.deliveryTime || '25-35 mins',
       });
 
+      if (!created?.id) return null;
+
       if (cartTotals.couponResult?.valid && appliedCouponCode) {
         recordCouponUsage(appliedCouponCode);
       }
 
-      addNotification({
-        title: `Order ${created?.id || uniqueId} Placed!`,
-        message: `Your order from ${
-          cartRestaurant?.name || cart.restaurantName
-        } worth ₹${cartTotals.grandTotal.toLocaleString()} is awaiting restaurant confirmation.`,
-        type: 'order',
-        orderId: created?.id || uniqueId,
-        customerEmail: user?.email,
-      });
+      if (preferences.orderUpdates !== false) {
+        addNotification({
+          title: `Order ${created.id} Placed!`,
+          message: `Your order from ${
+            cartRestaurant?.name || cart.restaurantName
+          } worth ₹${(created.grandTotal || cartTotals.grandTotal).toLocaleString()} is awaiting restaurant confirmation.`,
+          type: 'order',
+          orderId: created.id,
+          customerEmail: user?.email,
+        });
+      }
 
       clearCart();
       return created;
@@ -826,13 +977,15 @@ export function CustomerPortalProvider({ children }) {
       return false;
     }
     cancelOrder(orderId, reason || 'Cancelled by customer');
-    addNotification({
-      title: `Order ${orderId} Cancelled`,
-      message: `Cancellation confirmed. Refund (if paid online) will reflect within 2-4 business hours.`,
-      type: 'cancellation',
-      orderId,
-      customerEmail: user?.email,
-    });
+    if (preferences.orderUpdates !== false) {
+      addNotification({
+        title: `Order ${orderId} Cancelled`,
+        message: `Cancellation confirmed. Refund (if paid online) will reflect within 2-4 business hours.`,
+        type: 'cancellation',
+        orderId,
+        customerEmail: user?.email,
+      });
+    }
     return true;
   };
 
@@ -867,12 +1020,21 @@ export function CustomerPortalProvider({ children }) {
   return (
     <CustomerPortalContext.Provider
       value={{
-        // Location
+        // Live Location
+        liveLocation,
         selectedLocation,
-        setSelectedLocation,
-        availableLocations: AVAILABLE_LOCATIONS,
-        // Catalog & Menus
-        restaurants,
+        locationLoading,
+        locationError,
+        setLocationError,
+        isLocationModalOpen,
+        setIsLocationModalOpen,
+        detectCurrentLocation,
+        selectManualLocation,
+        saveLocationAsAddress,
+        clearLocation,
+        searchAddressSuggestions,
+        // Catalog & Menus (enriched with real proximity & delivery zone)
+        restaurants: locationAwareRestaurants,
         getMergedMenuForRestaurant,
         allPlatformDishes,
         coupons,
@@ -898,6 +1060,7 @@ export function CustomerPortalProvider({ children }) {
         // Orders & Tracking
         myOrders,
         activeOrders,
+        refreshOrdersFromApi,
         reorderPastOrder,
         canCancelOrder,
         cancelCustomerOrder,

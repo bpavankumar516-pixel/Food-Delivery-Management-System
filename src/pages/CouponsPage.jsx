@@ -12,7 +12,6 @@ import {
   X,
   Star,
   Eye,
-  TrendingUp,
   Percent,
   Sparkles,
 } from 'lucide-react';
@@ -20,6 +19,7 @@ import { toast } from 'react-toastify';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { useCoupons } from '../context/CouponContext';
+import { useOrders } from '../context/OrderContext';
 
 export default function CouponsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,6 +31,16 @@ export default function CouponsPage() {
     deleteCoupon,
     toggleCouponStatus,
   } = useCoupons();
+  const { orders } = useOrders();
+
+  const { totalDiscountGiven, couponOrderCount } = useMemo(() => {
+    const validOrders = (orders || []).filter(
+      (o) => o.status !== 'Cancelled' && o.status !== 'Rejected'
+    );
+    const total = validOrders.reduce((sum, o) => sum + (Number(o.discount) || 0), 0);
+    const count = validOrders.filter((o) => (Number(o.discount) || 0) > 0 || o.couponCode).length;
+    return { totalDiscountGiven: Math.round(total), couponOrderCount: count };
+  }, [orders]);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -402,10 +412,10 @@ export default function CouponsPage() {
                   Total Coupons
                 </span>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-                  {stats.total ?? 10}
+                  {stats.total ?? 0}
                 </p>
                 <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                  ↑ +12%
+                  {stats.totalRedemptions || 0} total uses
                 </span>
               </div>
             </div>
@@ -420,10 +430,10 @@ export default function CouponsPage() {
                   Active Coupons
                 </span>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-                  {stats.active ?? 8}
+                  {stats.active ?? 0}
                 </p>
                 <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                  ↑ +8%
+                  {stats.total > 0 ? Math.round(((stats.active || 0) / stats.total) * 100) : 0}% live now
                 </span>
               </div>
             </div>
@@ -438,10 +448,10 @@ export default function CouponsPage() {
                   Expired Coupons
                 </span>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-                  {stats.expired ?? 2}
+                  {stats.expired ?? 0}
                 </p>
                 <span className="text-[11px] font-bold text-rose-500 flex items-center gap-0.5 mt-0.5">
-                  ↓ -5%
+                  {stats.inactive || 0} inactive
                 </span>
               </div>
             </div>
@@ -456,10 +466,10 @@ export default function CouponsPage() {
                   Total Discount Given
                 </span>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-                  ₹12,450
+                  ₹{totalDiscountGiven.toLocaleString('en-IN')}
                 </p>
                 <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                  ↑ +15%
+                  Across {couponOrderCount} redeemed orders
                 </span>
               </div>
             </div>

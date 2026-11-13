@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Clock, Store, Bike, Check, User, Heart, Trash2, Edit3, ArrowRight, ExternalLink } from 'lucide-react';
+import { X, Clock, Store, Bike, Check, User, Heart, Trash2, Edit3, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRestaurants } from '../../../context/RestaurantContext';
 
@@ -174,17 +174,29 @@ export default function AllActivitiesModal({ isOpen, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-150 flex items-center justify-between shrink-0">
+        <div className="p-4 bg-slate-50 border-t border-slate-150 flex items-center justify-between shrink-0 gap-2">
           <span className="text-xs text-slate-400">
             Showing {filtered.length} recent activity logs
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2">
+            {activities.length > 0 && (
+              <button
+                type="button"
+                onClick={clearActivities}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear Logs</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

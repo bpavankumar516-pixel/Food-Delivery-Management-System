@@ -24,12 +24,9 @@ class CustomerService {
       // Also trigger Foodix local API for network visibility
       api.get('/customers').catch(() => {});
 
-      // Transform DummyJSON users to Customer schema
+      // Transform DummyJSON users to Customer schema (orders & spend computed dynamically from OrderContext)
       return rawUsers.map((u, index) => {
         const fallback = INITIAL_CUSTOMERS[index % INITIAL_CUSTOMERS.length];
-        const ordersCount = u.id % 2 === 0 ? 8 + (u.id % 10) : 3 + (u.id % 6);
-        const avgTicket = 280 + (u.id * 45) % 400;
-        const totalSpent = ordersCount * avgTicket;
 
         return {
           id: `cust_${u.id}`,
@@ -51,12 +48,12 @@ class CustomerService {
           company: u.company?.name || fallback.company,
           role: u.company?.title || fallback.role,
           status: fallback.status || (u.id % 6 === 0 ? 'Blocked' : 'Active'),
-          totalSpent,
-          ordersCount,
+          totalSpent: 0,
+          ordersCount: 0,
           favoriteCuisine: fallback.favoriteCuisine || 'Pizza',
           registeredDate: fallback.registeredDate || new Date().toISOString(),
           lastActive: 'Active today',
-          orders: fallback.orders || [],
+          orders: [],
         };
       });
     } catch (err) {

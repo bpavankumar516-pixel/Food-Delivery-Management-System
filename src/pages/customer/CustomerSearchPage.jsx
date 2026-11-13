@@ -27,11 +27,13 @@ export default function CustomerSearchPage() {
     addSearchHistory,
     removeSearchTerm,
     clearSearchHistory,
+    preferences,
+    liveLocation,
   } = useCustomerPortal();
 
   const [query, setQuery] = useState(initialQ);
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'dishes' | 'restaurants'
-  const [vegOnly, setVegOnly] = useState(false);
+  const [vegOnly, setVegOnly] = useState(!!preferences?.vegOnlyDefault);
   const [maxPrice, setMaxPrice] = useState(1000);
   const [sortBy, setSortBy] = useState('relevance'); // 'relevance' | 'price-low' | 'price-high' | 'rating'
 
@@ -40,7 +42,7 @@ export default function CustomerSearchPage() {
     if (qParam !== query) {
       setQuery(qParam);
     }
-  }, [searchParams]);
+  }, [searchParams, query]);
 
   const applySearchTerm = (term) => {
     setQuery(term);
@@ -54,7 +56,7 @@ export default function CustomerSearchPage() {
 
   const matchedRestaurants = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return restaurants.filter((r) => {
+    const list = restaurants.filter((r) => {
       if (vegOnly && !r.pureVeg) return false;
       if (!q) return true;
       return (
@@ -64,7 +66,15 @@ export default function CustomerSearchPage() {
         (r.cuisines || []).some((c) => c.toLowerCase().includes(q))
       );
     });
-  }, [restaurants, query, vegOnly]);
+    return [...list].sort((a, b) => {
+      if (liveLocation && a.isNearby !== b.isNearby) return a.isNearby ? -1 : 1;
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      if (liveLocation && a.distanceKm != null && b.distanceKm != null) {
+        return a.distanceKm - b.distanceKm;
+      }
+      return (b.rating || 0) - (a.rating || 0);
+    });
+  }, [restaurants, query, vegOnly, liveLocation, sortBy]);
 
   const matchedDishes = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -257,17 +267,23 @@ export default function CustomerSearchPage() {
         </div>
 
         {/* Results */}
-        {(activeTab === 'all' || activeTab === 'restaurants') && matchedRestaurants.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="font-black text-base text-[#202A24]">
-              Matching Restaurants ({matchedRestaurants.length})
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {matchedRestaurants.slice(0, activeTab === 'all' ? 4 : 24).map((rest) => (
-                <CustomerRestaurantCard key={rest.id} restaurant={rest} />
-              ))}
+        {(activeTab === 'all' || activeTab === 'restaurants') && (
+          matchedRestaurants.length > 0 ? (
+            <div className="space-y-3">
+              <h2 className="font-black text-base text-[#202A24]">
+                Matching Restaurants ({matchedRestaurants.length})
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {matchedRestaurants.slice(0, activeTab === 'all' ? 4 : 24).map((rest) => (
+                  <CustomerRestaurantCard key={rest.id} restaurant={rest} />
+                ))}
+              </div>
             </div>
-          </div>
+          ) : activeTab === 'restaurants' ? (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-10 text-center text-xs text-slate-500">
+              No restaurants match "{query || 'your filter'}". Try clearing filters or searching another term.
+            </div>
+          ) : null
         )}
 
         {(activeTab === 'all' || activeTab === 'dishes') && (

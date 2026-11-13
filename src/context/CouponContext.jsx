@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { toast } from 'react-toastify';
 import { INITIAL_COUPONS } from '../data/mockCoupons';
 
-const CouponContext = createContext(null);
+export const CouponContext = createContext(null);
 const STORAGE_KEY = 'foodix_coupons_v10';
 
 export function CouponProvider({ children }) {
@@ -92,16 +92,23 @@ export function CouponProvider({ children }) {
 
   // Toggle Coupon Status
   const toggleCouponStatus = (id) => {
+    let targetCode = '';
+    let nextStatus = '';
+
     setCoupons((prev) =>
       prev.map((c) => {
         if (c.id === id) {
-          const nextStatus = c.status === 'Active' ? 'Inactive' : 'Active';
-          toast.info(`Coupon ${c.code} is now ${nextStatus}`);
+          nextStatus = c.status === 'Active' ? 'Inactive' : 'Active';
+          targetCode = c.code;
           return { ...c, status: nextStatus };
         }
         return c;
       })
     );
+
+    if (targetCode) {
+      toast.info(`Coupon ${targetCode} is now ${nextStatus}`);
+    }
   };
 
   // Validate and calculate discount for an order amount
@@ -117,9 +124,15 @@ export function CouponProvider({ children }) {
       return { valid: false, discount: 0, message: `Coupon is ${found.status.toLowerCase()}` };
     }
 
-    // Expiry check
-    if (found.expiryDate && new Date(found.expiryDate) < new Date()) {
-      return { valid: false, discount: 0, message: 'Coupon has expired' };
+    // Expiry check (end-of-day inclusive when date is valid)
+    if (found.expiryDate) {
+      const expDate = new Date(found.expiryDate);
+      if (!Number.isNaN(expDate.getTime())) {
+        expDate.setHours(23, 59, 59, 999);
+        if (expDate < new Date()) {
+          return { valid: false, discount: 0, message: 'Coupon has expired' };
+        }
+      }
     }
 
     // Min order amount check

@@ -4,14 +4,12 @@ import {
   Search,
   Plus,
   RefreshCw,
-  ShoppingBag,
   Ban,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Calendar,
   Download,
-  IndianRupee,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Sidebar from '../components/layout/Sidebar';
@@ -21,7 +19,6 @@ import CustomerDetailsModal from '../components/customers/CustomerDetailsModal';
 import EditCustomerModal from '../components/customers/EditCustomerModal';
 import AddCustomerModal from '../components/customers/AddCustomerModal';
 import DeleteCustomerConfirmModal from '../components/customers/DeleteCustomerConfirmModal';
-import CreateCustomerOrderModal from '../components/customers/CreateCustomerOrderModal';
 import { useCustomers } from '../context/CustomerContext';
 
 export default function CustomersPage() {
@@ -138,8 +135,8 @@ export default function CustomersPage() {
             </div>
           </div>
 
-          {/* 5 Compact KPI Overview Cards: Total, Active, Blocked, Orders, Revenue (Reduced Size) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+          {/* 3 Compact Customer KPI Overview Cards: Total, Active, Blocked */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             {/* Card 1: Total Customers */}
             <div
               onClick={() => setSelectedStatus('All Status')}
@@ -155,12 +152,12 @@ export default function CustomersPage() {
                   <Users className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
-                  ↑ 12%
+                  {cities.length} cities
                 </span>
               </div>
               <div className="mt-2 relative z-10">
                 <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-                  {stats.totalCustomers || 12}
+                  {stats.totalCustomers ?? 0}
                 </p>
                 <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Total Customers</p>
               </div>
@@ -181,12 +178,14 @@ export default function CustomersPage() {
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
-                  ↑ 10%
+                  {stats.totalCustomers > 0
+                    ? `${Math.round(((stats.activeCustomers || 0) / stats.totalCustomers) * 100)}%`
+                    : '0%'}
                 </span>
               </div>
               <div className="mt-2 relative z-10">
                 <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-                  {stats.activeCustomers || 9}
+                  {stats.activeCustomers ?? 0}
                 </p>
                 <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Active Customers</p>
               </div>
@@ -207,57 +206,16 @@ export default function CustomersPage() {
                   <Ban className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] text-rose-600 font-bold bg-rose-100/60 px-1.5 py-0.5 rounded-md">
-                  ↓ 5%
+                  {stats.totalCustomers > 0
+                    ? `${Math.round(((stats.blockedCustomers || 0) / stats.totalCustomers) * 100)}%`
+                    : '0%'}
                 </span>
               </div>
               <div className="mt-2 relative z-10">
                 <p className="text-xl sm:text-2xl font-black text-rose-600 leading-tight">
-                  {stats.blockedCustomers || 3}
+                  {stats.blockedCustomers ?? 0}
                 </p>
                 <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Blocked Customers</p>
-              </div>
-            </div>
-
-            {/* Card 4: Total Orders Placed */}
-            <div
-              onClick={() => setSelectedStatus('All Status')}
-              className="bg-white hover:bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs relative overflow-hidden transition-all cursor-pointer"
-              title="Total food delivery orders placed"
-            >
-              <div className="flex items-center justify-between relative z-10">
-                <div className="w-8 h-8 rounded-lg bg-[#097956] text-white flex items-center justify-center shadow-xs">
-                  <ShoppingBag className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
-                  ↑ 15%
-                </span>
-              </div>
-              <div className="mt-2 relative z-10">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-                  {stats.totalOrders || 121}
-                </p>
-                <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Total Orders Placed</p>
-              </div>
-            </div>
-
-            {/* Card 5: Total Revenue */}
-            <div
-              className="bg-white hover:bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs relative overflow-hidden transition-all col-span-2 sm:col-span-1"
-              title="Total customer spend revenue"
-            >
-              <div className="flex items-center justify-between relative z-10">
-                <div className="w-8 h-8 rounded-lg bg-[#ea580c] text-white flex items-center justify-center shadow-xs">
-                  <IndianRupee className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded-md">
-                  ↑ 18%
-                </span>
-              </div>
-              <div className="mt-2 relative z-10">
-                <p className="text-xl sm:text-2xl font-black text-emerald-700 leading-tight">
-                  ₹{(stats.totalRevenue || 48250).toLocaleString()}
-                </p>
-                <p className="text-[11px] font-bold text-slate-600 mt-0.5 truncate">Total Revenue</p>
               </div>
             </div>
           </div>
@@ -389,7 +347,7 @@ export default function CustomersPage() {
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                {Array.from({ length: totalPages }, (_, i) => {
                   const pageNum = i + 1;
                   const isActive = currentPage === pageNum;
                   return (
@@ -422,12 +380,11 @@ export default function CustomersPage() {
         </main>
       </div>
 
-      {/* Reusable Modals: View, Edit, Add, Delete, Create Order */}
+      {/* Reusable Modals: View, Edit, Add, Delete */}
       <CustomerDetailsModal />
       <EditCustomerModal />
       <AddCustomerModal />
       <DeleteCustomerConfirmModal />
-      <CreateCustomerOrderModal />
     </div>
   );
 }

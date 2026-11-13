@@ -162,13 +162,15 @@ export function RestaurantProvider({ children }) {
     const total = restaurants.length;
     const open = restaurants.filter((r) => r.status === 'Open').length;
     const closed = restaurants.filter((r) => r.status === 'Closed').length;
+    const openPct = total > 0 ? Math.round((open / total) * 100) : 0;
+    const closedPct = total > 0 ? Math.round((closed / total) * 100) : 0;
     return {
       totalRestaurants: total,
-      totalChange: '+12% vs last month',
+      totalChange: `${restaurants.filter((r) => r.pureVeg).length} Pure Veg`,
       openRestaurants: open,
-      openChange: '+8% vs last month',
+      openChange: `${openPct}% operational`,
       closedRestaurants: closed,
-      closedChange: '-3% vs last month',
+      closedChange: `${closedPct}% paused`,
     };
   }, [restaurants]);
 
@@ -417,29 +419,33 @@ export function RestaurantProvider({ children }) {
   // Toggle Restaurant Open/Closed Status + Logs Activity
   const toggleStatus = (id) => {
     let nextStatus = 'Open';
+    let targetRestaurant = null;
+
     setRestaurants((prev) =>
       prev.map((r) => {
         if (r.id === id) {
           const newStatus = r.status === 'Open' ? 'Closed' : 'Open';
           nextStatus = newStatus;
-
-          // Log live status update activity
-          addActivity({
-            type: 'restaurant',
-            action: 'status',
-            title: `${r.name} marked as ${newStatus}`,
-            subtitle: `${r.location} • Now ${newStatus.toLowerCase()} for orders`,
-            restaurantId: r.id,
-            color: newStatus === 'Open' ? 'emerald' : 'rose',
-            badge: newStatus,
-          });
-
-          toast.info(`${r.name} status changed to ${newStatus}`);
+          targetRestaurant = r;
           return { ...r, status: newStatus };
         }
         return r;
       })
     );
+
+    if (targetRestaurant) {
+      addActivity({
+        type: 'restaurant',
+        action: 'status',
+        title: `${targetRestaurant.name} marked as ${nextStatus}`,
+        subtitle: `${targetRestaurant.location} • Now ${nextStatus.toLowerCase()} for orders`,
+        restaurantId: targetRestaurant.id,
+        color: nextStatus === 'Open' ? 'emerald' : 'rose',
+        badge: nextStatus,
+      });
+
+      toast.info(`${targetRestaurant.name} status changed to ${nextStatus}`);
+    }
 
     // Network Tab: PATCH /api/restaurants/:id/status
     restaurantService.toggleStatus(id, nextStatus).catch((err) => {
@@ -508,7 +514,19 @@ export function RestaurantProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
-          return parsed;
+          const sanitized = {};
+          Object.keys(parsed).forEach((restId) => {
+            sanitized[restId] = (parsed[restId] || []).map((dish) => {
+              if (dish.image?.includes('photo-1576107232684') || dish.name?.toLowerCase().includes('fries')) {
+                return {
+                  ...dish,
+                  image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=500',
+                };
+              }
+              return dish;
+            });
+          });
+          return sanitized;
         }
       }
     } catch (e) {
@@ -532,7 +550,19 @@ export function RestaurantProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return parsed.map((item) => {
+            if (
+              item.id === 'dish_ref_08' ||
+              item.name === 'French Fries' ||
+              item.image?.includes('photo-1576107232684')
+            ) {
+              return {
+                ...item,
+                image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=600',
+              };
+            }
+            return item;
+          });
         }
       }
     } catch (e) {

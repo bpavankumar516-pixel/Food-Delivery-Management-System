@@ -1,207 +1,169 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Settings, Bell, Shield, Leaf, LogOut, Trash2, Lock } from 'lucide-react';
-import { toast } from 'react-toastify';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  User,
+  MapPin,
+  Heart,
+  Tag,
+  Bell,
+  HelpCircle,
+  Settings,
+  ChevronRight,
+} from 'lucide-react';
 import CustomerLayout from '../../components/customerPortal/CustomerLayout';
-import ConfirmDialog from '../../components/customerPortal/ConfirmDialog';
-import { useAuth } from '../../context/AuthContext';
+import ProfileSection from '../../components/customerPortal/settings/ProfileSection';
+import AddressesSection from '../../components/customerPortal/settings/AddressesSection';
+import FavoritesSection from '../../components/customerPortal/settings/FavoritesSection';
+import OffersSection from '../../components/customerPortal/settings/OffersSection';
+import NotificationsSection from '../../components/customerPortal/settings/NotificationsSection';
+import SupportSection from '../../components/customerPortal/settings/SupportSection';
+import AccountSettingsSection from '../../components/customerPortal/settings/AccountSettingsSection';
 import { useCustomerPortal } from '../../context/CustomerPortalContext';
 
+const SETTINGS_TABS = [
+  { id: 'profile', label: 'My Profile', desc: 'Personal details & photo', icon: User },
+  { id: 'addresses', label: 'My Addresses', desc: 'Saved delivery points', icon: MapPin },
+  { id: 'favorites', label: 'Favorites', desc: 'Restaurants & dishes', icon: Heart },
+  { id: 'offers', label: 'Offers & Coupons', desc: 'Discounts & promo codes', icon: Tag },
+  { id: 'notifications', label: 'Notifications', desc: 'Alerts & preferences', icon: Bell },
+  { id: 'support', label: 'Help & Support', desc: 'FAQs & support tickets', icon: HelpCircle },
+  { id: 'account', label: 'Account Settings', desc: 'Language, privacy & logout', icon: Settings },
+];
+
 export default function CustomerSettingsPage() {
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { preferences, updatePreferences, clearSearchHistory } = useCustomerPortal();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { myUnreadNotificationsCount, favoriteRestaurantIds, favoriteDishIds, addresses } =
+    useCustomerPortal();
 
-  const [logoutOpen, setLogoutOpen] = useState(false);
+  const rawTab = searchParams.get('tab') || 'profile';
+  const activeTab = SETTINGS_TABS.some((t) => t.id === rawTab) ? rawTab : 'profile';
 
-  const togglePref = (key) => {
-    updatePreferences({ [key]: !preferences[key] });
+  const switchTab = (tabId) => {
+    setSearchParams({ tab: tabId });
+  };
+
+  const getBadge = (id) => {
+    if (id === 'notifications' && myUnreadNotificationsCount > 0) return myUnreadNotificationsCount;
+    if (id === 'favorites' && favoriteRestaurantIds.length + favoriteDishIds.length > 0) {
+      return favoriteRestaurantIds.length + favoriteDishIds.length;
+    }
+    if (id === 'addresses' && addresses.length > 0) return addresses.length;
+    return null;
   };
 
   return (
     <CustomerLayout>
-      <div className="space-y-5 max-w-3xl">
-        <div className="rounded-3xl bg-gradient-to-r from-[#FFF8F0] via-[#fffbf6] to-[#E7EFE8] border border-orange-100/80 p-5 sm:p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#163A2D] text-white flex items-center justify-center shrink-0">
-            <Settings className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#202A24]">
-              Customer Settings
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              Personalize your dining defaults, notifications, and privacy controls
-            </p>
-          </div>
-        </div>
-
-        {/* Dining & Delivery Preferences */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-4 shadow-2xs">
-          <h2 className="font-black text-base text-[#202A24] flex items-center gap-2 pb-2 border-b border-slate-100">
-            <Leaf className="w-4.5 h-4.5 text-emerald-600" />
-            <span>Dining & Delivery Preferences</span>
-          </h2>
-
-          {[
-            {
-              key: 'vegOnlyDefault',
-              title: 'Pure Veg Default Filter',
-              desc: 'Automatically prioritize vegetarian kitchens when browsing Restaurants.',
-            },
-            {
-              key: 'contactlessDelivery',
-              title: 'Contactless Doorstep Delivery',
-              desc: 'Pre-fill contactless instructions at checkout by default.',
-            },
-          ].map((item) => (
-            <div key={item.key} className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-bold text-xs sm:text-sm text-[#202A24]">{item.title}</p>
-                <p className="text-[11px] text-slate-500">{item.desc}</p>
-              </div>
+      <div className="space-y-5">
+        {/* Mobile Horizontal Tabs */}
+        <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+          {SETTINGS_TABS.map((t) => {
+            const Icon = t.icon;
+            const active = activeTab === t.id;
+            const badge = getBadge(t.id);
+            return (
               <button
+                key={t.id}
                 type="button"
-                onClick={() => togglePref(item.key)}
-                className={`w-12 h-6 rounded-full transition-colors p-0.5 cursor-pointer shrink-0 ${
-                  preferences[item.key] ? 'bg-[#163A2D]' : 'bg-slate-300'
+                onClick={() => switchTab(t.id)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
+                  active
+                    ? 'bg-[#163A2D] text-white border-[#163A2D] shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
-                <div
-                  className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                    preferences[item.key] ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                />
+                <Icon className="w-3.5 h-3.5" />
+                <span>{t.label}</span>
+                {badge != null && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      active ? 'bg-[#FF6B35] text-white' : 'bg-[#FFF8F0] text-[#FF6B35]'
+                    }`}
+                  >
+                    {badge}
+                  </span>
+                )}
               </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Notification Preferences */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-4 shadow-2xs">
-          <h2 className="font-black text-base text-[#202A24] flex items-center gap-2 pb-2 border-b border-slate-100">
-            <Bell className="w-4.5 h-4.5 text-[#FF6B35]" />
-            <span>Notification Settings</span>
-          </h2>
-
-          {[
-            {
-              key: 'orderUpdates',
-              title: 'Live Order & Rider Alerts',
-              desc: 'Receive real-time updates when restaurant confirms or dispatches orders.',
-            },
-            {
-              key: 'promoOffers',
-              title: 'Exclusive Coupons & Flash Deals',
-              desc: 'Get notified when Admin launches new Foodix promotional codes.',
-            },
-            {
-              key: 'emailAlerts',
-              title: 'Email Receipts & Summaries',
-              desc: 'Send itemized order invoices to your registered email.',
-            },
-          ].map((item) => (
-            <div key={item.key} className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-bold text-xs sm:text-sm text-[#202A24]">{item.title}</p>
-                <p className="text-[11px] text-slate-500">{item.desc}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => togglePref(item.key)}
-                className={`w-12 h-6 rounded-full transition-colors p-0.5 cursor-pointer shrink-0 ${
-                  preferences[item.key] ? 'bg-[#FF6B35]' : 'bg-slate-300'
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                    preferences[item.key] ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Privacy & Account Security */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-4 shadow-2xs text-xs">
-          <h2 className="font-black text-base text-[#202A24] flex items-center gap-2 pb-2 border-b border-slate-100">
-            <Shield className="w-4.5 h-4.5 text-[#163A2D]" />
-            <span>Privacy & Account Security</span>
-          </h2>
-
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-bold text-xs sm:text-sm text-[#202A24]">Save Search History</p>
-              <p className="text-[11px] text-slate-500">
-                Keep recent food & restaurant searches on this browser for quick access.
+        {/* Desktop 2-Column Left Navigation + Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Sticky Settings Navigation */}
+          <aside className="hidden lg:block lg:col-span-3 bg-white rounded-3xl border border-slate-200/80 p-3 shadow-2xs sticky top-20 space-y-1">
+            <div className="px-3 py-2 mb-1 border-b border-slate-100">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Customer Hub
               </p>
+              <h1 className="text-base font-black text-[#202A24]">Account & Settings</h1>
             </div>
-            <button
-              type="button"
-              onClick={() => togglePref('saveSearchHistory')}
-              className={`w-12 h-6 rounded-full transition-colors p-0.5 cursor-pointer shrink-0 ${
-                preferences.saveSearchHistory ? 'bg-[#163A2D]' : 'bg-slate-300'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                  preferences.saveSearchHistory ? 'translate-x-6' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
 
-          <div className="p-3.5 rounded-2xl bg-[#FFF8F0] border border-orange-100 text-slate-600 leading-relaxed">
-            <strong className="text-[#202A24]">Privacy & Demo Storage Notice:</strong> Foodix stores your customer cart, wishlist, delivery addresses, and preferences locally in your browser scoped to your account session.
-          </div>
+            {SETTINGS_TABS.map((t) => {
+              const Icon = t.icon;
+              const active = activeTab === t.id;
+              const badge = getBadge(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => switchTab(t.id)}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl text-left transition-all cursor-pointer ${
+                    active
+                      ? 'bg-[#163A2D] text-white shadow-sm'
+                      : 'text-[#202A24] hover:bg-[#FFF8F0]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        active ? 'bg-[#FF6B35] text-white' : 'bg-[#E7EFE8] text-[#163A2D]'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black truncate">{t.label}</p>
+                      <p
+                        className={`text-[10px] truncate ${
+                          active ? 'text-emerald-200/85' : 'text-slate-400'
+                        }`}
+                      >
+                        {t.desc}
+                      </p>
+                    </div>
+                  </div>
+                  {badge != null ? (
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ${
+                        active ? 'bg-white text-[#163A2D]' : 'bg-[#FF6B35]/15 text-[#FF6B35]'
+                      }`}
+                    >
+                      {badge}
+                    </span>
+                  ) : (
+                    <ChevronRight
+                      className={`w-3.5 h-3.5 shrink-0 ${
+                        active ? 'text-white' : 'text-slate-300'
+                      }`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </aside>
 
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                clearSearchHistory();
-                toast.success('Search history cleared');
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear Search History</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/customer/profile')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#E7EFE8] hover:bg-emerald-100 text-[#163A2D] font-bold cursor-pointer"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Manage Password</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setLogoutOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold cursor-pointer ml-auto"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
-            </button>
+          {/* Right Settings Section Content */}
+          <div className="lg:col-span-9 min-w-0">
+            {activeTab === 'profile' && <ProfileSection />}
+            {activeTab === 'addresses' && <AddressesSection />}
+            {activeTab === 'favorites' && <FavoritesSection />}
+            {activeTab === 'offers' && <OffersSection />}
+            {activeTab === 'notifications' && <NotificationsSection />}
+            {activeTab === 'support' && <SupportSection />}
+            {activeTab === 'account' && <AccountSettingsSection />}
           </div>
         </div>
       </div>
-
-      <ConfirmDialog
-        isOpen={logoutOpen}
-        variant="danger"
-        title="Logout of Foodix?"
-        message="You will be returned to the login screen."
-        confirmLabel="Logout"
-        onConfirm={() => {
-          setLogoutOpen(false);
-          logout();
-          navigate('/login');
-        }}
-        onCancel={() => setLogoutOpen(false)}
-      />
     </CustomerLayout>
   );
 }

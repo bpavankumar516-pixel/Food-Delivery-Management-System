@@ -6,13 +6,19 @@ import {
   Trash2,
   Eye,
   ShoppingBag,
+  Edit3,
+  Ban,
+  CheckCircle2,
 } from 'lucide-react';
 import { useCustomers } from '../../context/CustomerContext';
+import ActionMoreMenu from '../common/ActionMoreMenu';
 
 export default function CustomerCard({ customer }) {
   const {
     openCustomerDetails,
+    openEditModal,
     openDeleteModal,
+    toggleBlockCustomer,
   } = useCustomers();
 
   const isBlocked = customer.status === 'Blocked';
@@ -111,22 +117,53 @@ export default function CustomerCard({ customer }) {
       <div className="px-4 py-3 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between gap-2">
         <button
           type="button"
-          onClick={() => openCustomerDetails(customer)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#053b2c] hover:bg-[#074d39] text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
-          title="View Customer Details"
+          onClick={() => toggleBlockCustomer(customer.id)}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-xs ${
+            isBlocked
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : 'bg-amber-500 hover:bg-amber-600 text-white'
+          }`}
+          title={isBlocked ? 'Unblock Customer' : 'Block Customer'}
         >
-          <Eye className="w-3.5 h-3.5" />
-          <span>View Details</span>
+          {isBlocked ? (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Unblock</span>
+            </>
+          ) : (
+            <>
+              <Ban className="w-3.5 h-3.5" />
+              <span>Block</span>
+            </>
+          )}
         </button>
 
-        <button
-          type="button"
-          onClick={() => openDeleteModal(customer)}
-          className="p-2 rounded-xl bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 transition-colors cursor-pointer"
-          title="Delete Customer"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <ActionMoreMenu
+          title="Customer Actions"
+          buttonClassName="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+          items={[
+            {
+              id: 'view',
+              label: 'View Details',
+              icon: Eye,
+              onClick: () => openCustomerDetails(customer),
+            },
+            {
+              id: 'edit',
+              label: 'Edit Customer',
+              icon: Edit3,
+              onClick: () => openEditModal(customer),
+            },
+            {
+              id: 'delete',
+              label: 'Delete Customer',
+              icon: Trash2,
+              tone: 'danger',
+              dividerBefore: true,
+              onClick: () => openDeleteModal(customer),
+            },
+          ]}
+        />
       </div>
     </div>
   );

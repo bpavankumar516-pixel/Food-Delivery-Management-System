@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, UtensilsCrossed, DollarSign, Check, Leaf } from 'lucide-react';
+import { X, UtensilsCrossed, DollarSign } from 'lucide-react';
 import { useDashboard } from '../../../context/DashboardContext';
 import { useRestaurants } from '../../../context/RestaurantContext';
 
@@ -184,13 +184,27 @@ export default function AddMenuItemModal() {
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 font-medium cursor-pointer"
               >
-                <option value="Bestsellers">Bestsellers</option>
+                <option value="Pizza">Pizza</option>
+                <option value="Burger">Burger</option>
+                <option value="Pasta">Pasta</option>
+                <option value="South Indian">South Indian</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Desserts">Desserts</option>
                 <option value="Main Course">Main Course</option>
                 <option value="Combos & Meals">Combos & Meals</option>
-                <option value="Starters & Sides">Starters & Sides</option>
-                <option value="Desserts & Beverages">Desserts & Beverages</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="font-bold text-slate-800 block mb-1">Description</label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Short appetizing dish description..."
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 font-medium"
+            />
           </div>
 
           {/* Submit Actions */}

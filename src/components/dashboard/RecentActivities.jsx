@@ -53,6 +53,16 @@ export default function RecentActivities() {
   const handleItemClick = (act) => {
     if (act.restaurantId) {
       navigate(`/restaurants/${act.restaurantId}`);
+    } else if (act.type === 'order' || act.type === 'delivery') {
+      navigate('/orders');
+    } else if (act.type === 'coupon') {
+      navigate('/coupons');
+    } else if (act.type === 'menu') {
+      navigate('/menu');
+    } else if (act.type === 'customer') {
+      navigate('/customers');
+    } else if (act.type === 'support') {
+      navigate('/support');
     }
   };
 
@@ -83,9 +93,7 @@ export default function RecentActivities() {
           <div
             key={act.id}
             onClick={() => handleItemClick(act)}
-            className={`flex items-center gap-3 p-1.5 -mx-1.5 rounded-xl transition-all ${
-              act.restaurantId ? 'cursor-pointer hover:bg-slate-50 group' : ''
-            }`}
+            className="flex items-center gap-3 p-1.5 -mx-1.5 rounded-xl transition-all cursor-pointer hover:bg-slate-50 group"
           >
             {/* Round Icon */}
             <div

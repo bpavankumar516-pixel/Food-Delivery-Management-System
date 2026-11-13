@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -15,6 +15,8 @@ import {
   Truck,
   UtensilsCrossed,
   Grid2x2,
+  MapPin,
+  LocateFixed,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import CustomerLayout from '../../components/customerPortal/CustomerLayout';
@@ -84,7 +86,11 @@ export default function CustomerHomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
+    liveLocation,
     selectedLocation,
+    locationLoading,
+    setIsLocationModalOpen,
+    detectCurrentLocation,
     restaurants,
     allPlatformDishes,
     coupons,
@@ -96,6 +102,13 @@ export default function CustomerHomePage() {
   const [slideIdx, setSlideIdx] = useState(0);
   const currentSlide = HERO_SLIDES[slideIdx];
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIdx((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
   const activeCoupons = useMemo(
     () => coupons.filter((c) => c.status === 'Active'),
     [coupons]
@@ -103,27 +116,38 @@ export default function CustomerHomePage() {
   const topCoupon = activeCoupons[0] || coupons[0];
   const secondaryCoupon = activeCoupons[1] || activeCoupons[0] || coupons[1];
 
-  const popularRestaurants = useMemo(
-    () =>
-      [...restaurants]
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, 4),
-    [restaurants]
-  );
+  const popularRestaurants = useMemo(() => {
+    return [...restaurants]
+      .sort((a, b) => {
+        if (liveLocation) {
+          if (a.isNearby !== b.isNearby) return a.isNearby ? -1 : 1;
+          if (a.distanceKm != null && b.distanceKm != null && Math.abs(a.distanceKm - b.distanceKm) > 1) {
+            return a.distanceKm - b.distanceKm;
+          }
+        }
+        return (b.rating || 0) - (a.rating || 0);
+      })
+      .slice(0, 4);
+  }, [restaurants, liveLocation]);
 
   const recommendedRestaurants = useMemo(() => {
     const recentSet = new Set(recentlyViewedIds);
     const recentlyViewed = recentlyViewedIds
       .map((id) => restaurants.find((r) => r.id === id))
       .filter(Boolean);
-    const others = restaurants.filter((r) => !recentSet.has(r.id) && r.status === 'Open');
+    const others = restaurants
+      .filter((r) => !recentSet.has(r.id) && r.status === 'Open')
+      .sort((a, b) => {
+        if (liveLocation && a.isNearby !== b.isNearby) return a.isNearby ? -1 : 1;
+        return (b.rating || 0) - (a.rating || 0);
+      });
     return [...recentlyViewed, ...others].slice(0, 4);
-  }, [restaurants, recentlyViewedIds]);
+  }, [restaurants, recentlyViewedIds, liveLocation]);
 
   const popularDishes = useMemo(
     () =>
       allPlatformDishes
-        .filter((d) => d.inStock !== false)
+        .filter((d) => d.inStock !== false && d.restaurantStatus !== 'Closed')
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
         .slice(0, 4),
     [allPlatformDishes]
@@ -161,9 +185,38 @@ export default function CustomerHomePage() {
             <h1 className="text-lg sm:text-xl font-black text-[#202A24] tracking-tight">
               Welcome back, {user?.name?.split(' ')[0] || 'Foodie'}!
             </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Delivering hot & fresh across <span className="font-bold text-[#163A2D]">{selectedLocation}</span>
-            </p>
+            {selectedLocation ? (
+              <p className="text-xs text-slate-500 font-medium flex flex-wrap items-center gap-1.5">
+                <span>Delivering to</span>
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="inline-flex items-center gap-1 font-bold text-[#163A2D] hover:text-[#FF6B35] underline cursor-pointer"
+                >
+                  <MapPin className="w-3 h-3 text-[#FF6B35]" />
+                  <span>{selectedLocation}</span>
+                </button>
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  disabled={locationLoading}
+                  onClick={() => detectCurrentLocation({ saveAsAddress: true })}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF8F0] border border-[#FF6B35] text-[#FF6B35] text-xs font-bold cursor-pointer hover:bg-[#FF6B35] hover:text-white transition-colors"
+                >
+                  <LocateFixed className="w-3.5 h-3.5" />
+                  <span>{locationLoading ? 'Detecting location...' : 'Use Current Location'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="text-xs font-bold text-[#163A2D] underline cursor-pointer"
+                >
+                  or search address manually
+                </button>
+              </div>
+            )}
           </div>
           {activeOrders.length > 0 && (
             <button
@@ -281,7 +334,7 @@ export default function CustomerHomePage() {
               icon: Tag,
               bg: 'bg-orange-50',
               color: 'text-[#FF6B35]',
-              to: '/customer/offers',
+              to: '/customer/settings?tab=offers',
             },
             {
               title: 'Top Rated',
@@ -297,7 +350,7 @@ export default function CustomerHomePage() {
               icon: Headphones,
               bg: 'bg-[#E7EFE8]',
               color: 'text-[#163A2D]',
-              to: '/customer/support',
+              to: '/customer/settings?tab=support',
             },
           ].map((feat) => {
             const Icon = feat.icon;
@@ -451,7 +504,7 @@ export default function CustomerHomePage() {
               </div>
               <button
                 type="button"
-                onClick={() => navigate('/customer/offers')}
+                onClick={() => navigate('/customer/settings?tab=offers')}
                 className="text-xs font-bold text-[#FF6B35] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <span>View All</span>

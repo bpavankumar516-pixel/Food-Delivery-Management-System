@@ -17,7 +17,6 @@ import {
   PackageCheck,
   Ban,
   Check,
-  Plus,
   RefreshCw,
   LayoutGrid,
   List,
@@ -29,11 +28,10 @@ import {
 import { toast } from 'react-toastify';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
-import PlaceOrderModal from '../components/orders/PlaceOrderModal';
+import ActionMoreMenu from '../components/common/ActionMoreMenu';
 import CustomerDetailsModal from '../components/customers/CustomerDetailsModal';
 import EditCustomerModal from '../components/customers/EditCustomerModal';
 import DeleteCustomerConfirmModal from '../components/customers/DeleteCustomerConfirmModal';
-import CreateCustomerOrderModal from '../components/customers/CreateCustomerOrderModal';
 import { useOrders } from '../context/OrderContext';
 import { useCustomers } from '../context/CustomerContext';
 
@@ -57,10 +55,12 @@ export default function OrdersPage() {
     searchQuery,
     setSearchQuery,
     refreshOrdersFromApi,
+    updateOrderStatus,
     acceptOrder,
     rejectOrder,
     cancelOrder,
     advanceOrderStatus,
+    isValidStatusTransition,
   } = useOrders();
 
   const { customers, openCustomerDetails } = useCustomers();
@@ -75,13 +75,54 @@ export default function OrdersPage() {
   const itemsPerPage = viewMode === 'grid' ? 9 : 8;
 
   // Modal States
-  const [isPlaceOrderOpen, setIsPlaceOrderOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
   const [cancelModalOrder, setCancelModalOrder] = useState(null);
   const [cancelReason, setCancelReason] = useState('Customer requested cancellation due to address change');
   const [rejectModalOrder, setRejectModalOrder] = useState(null);
   const [rejectReason, setRejectReason] = useState('Restaurant kitchen capacity full');
+
+  const getOrderMoreMenuItems = (order) => {
+    const canAdvance = ['Confirmed', 'Preparing', 'Ready for Pickup', 'Out for Delivery'].includes(
+      order.status
+    );
+    const canReject = isValidStatusTransition(order.status, 'Rejected').valid;
+    const canCancel = isValidStatusTransition(order.status, 'Cancelled').valid;
+
+    return [
+      {
+        id: 'inspect',
+        label: 'Inspect Order & Pipeline',
+        icon: Eye,
+        onClick: () => setSelectedOrder(order),
+      },
+      {
+        id: 'advance',
+        label: 'Advance Status',
+        icon: ArrowRight,
+        tone: 'success',
+        hidden: !canAdvance,
+        onClick: () => advanceOrderStatus(order.id),
+      },
+      {
+        id: 'reject',
+        label: 'Reject Order',
+        icon: Ban,
+        tone: 'warning',
+        hidden: !canReject,
+        onClick: () => setRejectModalOrder(order),
+      },
+      {
+        id: 'cancel',
+        label: 'Cancel Order',
+        icon: XCircle,
+        tone: 'danger',
+        dividerBefore: canReject || canAdvance,
+        hidden: !canCancel,
+        onClick: () => setCancelModalOrder(order),
+      },
+    ];
+  };
 
   // Open linked Customer Profile modal using live CustomerContext record
   const handleInspectCustomer = (order) => {
@@ -107,6 +148,8 @@ export default function OrdersPage() {
         (o) =>
           o.id?.toLowerCase().includes(q) ||
           o.rawId?.toLowerCase().includes(q) ||
+          o.customerId?.toLowerCase().includes(q) ||
+          o.customer?.id?.toLowerCase().includes(q) ||
           o.customer?.name?.toLowerCase().includes(q) ||
           o.customer?.email?.toLowerCase().includes(q) ||
           o.customer?.city?.toLowerCase().includes(q) ||
@@ -182,6 +225,9 @@ export default function OrdersPage() {
 
     const headers = [
       'Order ID',
+      'Order Date',
+      'Placed Time',
+      'Customer ID',
       'Customer Name',
       'Customer Email',
       'City',
@@ -194,6 +240,9 @@ export default function OrdersPage() {
     ];
     const rows = filteredOrders.map((o) => [
       o.id,
+      `"${o.orderDate || 'Today'}"`,
+      `"${o.placedAt || ''}"`,
+      `"${o.customerId || o.customer?.id || 'GUEST'}"`,
       `"${o.customer?.name || ''}"`,
       o.customer?.email || '',
       `"${o.customer?.city || ''}"`,
@@ -340,7 +389,7 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              {/* Right Side Summary + Primary Place Order CTA */}
+              {/* Right Side Summary */}
               <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
                 <div className="px-4 py-2 rounded-2xl bg-white/90 border border-emerald-200/70 shadow-2xs text-left sm:text-right">
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
@@ -350,15 +399,6 @@ export default function OrdersPage() {
                     ₹{stats.eligibleRevenue.toLocaleString()}
                   </p>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsPlaceOrderOpen(true)}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#ff5722] to-[#ff6b3d] hover:from-[#e64a19] hover:to-[#ff5722] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/25 transition-all active:scale-98 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Place New Order</span>
-                </button>
               </div>
             </div>
           </div>
@@ -473,7 +513,7 @@ export default function OrdersPage() {
               { id: 'Pending', label: 'Pending', count: stats.pending },
               { id: 'Confirmed', label: 'Confirmed', count: stats.confirmed },
               { id: 'Preparing', label: 'Preparing', count: stats.preparing },
-              { id: 'Ready for Pickup', label: 'Ready Bagged', count: stats.readyForPickup },
+              { id: 'Ready for Pickup', label: 'Ready', count: stats.readyForPickup },
               { id: 'Out for Delivery', label: 'Out for Delivery', count: stats.outForDelivery },
               { id: 'Delivered', label: 'Delivered', count: stats.delivered },
               { id: 'Cancelled', label: 'Cancelled', count: stats.cancelled },
@@ -515,7 +555,7 @@ export default function OrdersPage() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search by #FDX ID, customer name, email, city, restaurant, or dish..."
+                  placeholder="Search by #FDX ID, customer ID, name, email, city, restaurant, or dish..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -675,7 +715,7 @@ export default function OrdersPage() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-[#fcfbf9] text-slate-700 font-bold border-b border-slate-100">
                     <tr>
-                      <th className="py-4 px-5">Order ID</th>
+                      <th className="py-4 px-5">Order ID &amp; Date</th>
                       <th className="py-4 px-4">Customer (Live Profile)</th>
                       <th className="py-4 px-4">Restaurant</th>
                       <th className="py-4 px-4">Ordered Items</th>
@@ -690,10 +730,11 @@ export default function OrdersPage() {
                       const badge = getStatusBadge(order.status);
                       const BadgeIcon = badge.icon;
                       const isBlockedCust = order.customer?.status === 'Blocked';
+                      const customerIdLabel = order.customerId || order.customer?.id || 'GUEST';
 
                       return (
                         <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
-                          {/* Order ID & Source */}
+                          {/* Order ID & Date */}
                           <td className="py-3.5 px-5">
                             <button
                               type="button"
@@ -702,8 +743,8 @@ export default function OrdersPage() {
                             >
                               {order.id}
                             </button>
-                            <span className="text-[10px] text-slate-400 font-medium block">
-                              {order.placedAt || 'Today'}
+                            <span className="text-[10px] text-slate-500 font-semibold block">
+                              {order.orderDate || 'Today'} • {order.placedAt || 'Just now'}
                             </span>
                             {order.source && (
                               <span className="inline-block mt-1 px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold">
@@ -712,7 +753,7 @@ export default function OrdersPage() {
                             )}
                           </td>
 
-                          {/* Customer with Avatar, Tier, City & Click-to-Inspect */}
+                          {/* Customer with Avatar, Customer ID, Tier, City & Click-to-Inspect */}
                           <td className="py-3.5 px-4">
                             <div
                               onClick={() => handleInspectCustomer(order)}
@@ -737,9 +778,12 @@ export default function OrdersPage() {
                                 />
                               </div>
                               <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="font-bold text-slate-900 group-hover:text-[#ff5722] transition-colors truncate max-w-[130px]">
                                     {order.customer?.name}
+                                  </span>
+                                  <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[9px] font-mono font-bold">
+                                    ID: {customerIdLabel}
                                   </span>
                                   {order.customer?.tier && (
                                     <span
@@ -755,8 +799,8 @@ export default function OrdersPage() {
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[10.5px] text-slate-500 truncate max-w-[165px]">
-                                  {order.customer?.city || 'Bengaluru'} • {order.customer?.phone}
+                                <p className="text-[10.5px] text-slate-500 truncate max-w-[180px]">
+                                  {order.customer?.city || 'Local'} • {order.customer?.phone || 'N/A'}
                                 </p>
                               </div>
                             </div>
@@ -821,18 +865,9 @@ export default function OrdersPage() {
                             </span>
                           </td>
 
-                          {/* Actions */}
+                          {/* Actions: Print Invoice + Accept + More Menu */}
                           <td className="py-3.5 px-5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedOrder(order)}
-                                className="w-8 h-8 rounded-lg bg-[#053b2c] hover:bg-[#074d39] text-white flex items-center justify-center transition-colors cursor-pointer"
-                                title="Inspect Order & Pipeline"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-
                               <button
                                 type="button"
                                 onClick={() => setInvoiceOrder(order)}
@@ -843,53 +878,21 @@ export default function OrdersPage() {
                               </button>
 
                               {order.status === 'Pending' && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => acceptOrder(order.id)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
-                                    title="Accept Order"
-                                  >
-                                    <Check className="w-3 h-3" />
-                                    <span>Accept</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setRejectModalOrder(order)}
-                                    className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer"
-                                    title="Reject Order"
-                                  >
-                                    <Ban className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-
-                              {['Confirmed', 'Preparing', 'Ready for Pickup', 'Out for Delivery'].includes(
-                                order.status
-                              ) && (
                                 <button
                                   type="button"
-                                  onClick={() => advanceOrderStatus(order.id)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
-                                  title={`Advance from ${order.status}`}
+                                  onClick={() => acceptOrder(order.id)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                                  title="Accept Order"
                                 >
-                                  <span>Advance</span>
-                                  <ArrowRight className="w-3 h-3" />
+                                  <Check className="w-3 h-3" />
+                                  <span>Accept</span>
                                 </button>
                               )}
 
-                              {order.status !== 'Delivered' &&
-                                order.status !== 'Cancelled' &&
-                                order.status !== 'Rejected' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setCancelModalOrder(order)}
-                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
-                                    title="Cancel Order with Reason"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </button>
-                                )}
+                              <ActionMoreMenu
+                                title="Order Actions"
+                                items={getOrderMoreMenuItems(order)}
+                              />
                             </div>
                           </td>
                         </tr>
@@ -926,7 +929,7 @@ export default function OrdersPage() {
                           )}
                         </div>
                         <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                          {order.placedAt || 'Today'} • {order.restaurant}
+                          {order.orderDate || 'Today'} • {order.placedAt || 'Just now'} • {order.restaurant}
                         </p>
                       </div>
 
@@ -954,10 +957,13 @@ export default function OrdersPage() {
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-bold text-xs text-slate-900 truncate">
                             {order.customer?.name}
                           </p>
+                          <span className="px-1.5 py-0.2 rounded bg-white border border-slate-200 text-slate-600 text-[9px] font-mono font-bold">
+                            ID: {order.customerId || order.customer?.id || 'GUEST'}
+                          </span>
                           {order.customer?.tier && (
                             <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-black">
                               {order.customer.tier}
@@ -966,9 +972,9 @@ export default function OrdersPage() {
                         </div>
                         <p className="text-[11px] text-slate-500 flex items-center gap-1 truncate">
                           <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>{order.customer?.city || 'Bengaluru'}</span>
+                          <span>{order.customer?.city || 'Local'}</span>
                           <span>•</span>
-                          <span>{order.customer?.ordersCount || 1} orders</span>
+                          <span>{order.customer?.ordersCount ?? 0} orders</span>
                         </p>
                       </div>
                       <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -1017,17 +1023,9 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => setSelectedOrder(order)}
-                          className="p-2 rounded-xl bg-[#053b2c] hover:bg-[#074d39] text-white cursor-pointer"
-                          title="Inspect Order"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
                           onClick={() => setInvoiceOrder(order)}
                           className="p-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#ff5722] border border-orange-200 cursor-pointer"
-                          title="Invoice"
+                          title="Generate & Print Invoice"
                         >
                           <Printer className="w-4 h-4" />
                         </button>
@@ -1035,23 +1033,17 @@ export default function OrdersPage() {
                           <button
                             type="button"
                             onClick={() => acceptOrder(order.id)}
-                            className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] cursor-pointer"
+                            className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] cursor-pointer flex items-center gap-1"
                           >
-                            Accept
+                            <Check className="w-3 h-3" />
+                            <span>Accept</span>
                           </button>
                         )}
-                        {['Confirmed', 'Preparing', 'Ready for Pickup', 'Out for Delivery'].includes(
-                          order.status
-                        ) && (
-                          <button
-                            type="button"
-                            onClick={() => advanceOrderStatus(order.id)}
-                            className="px-3 py-2 rounded-xl bg-[#ff5722] hover:bg-[#e64a19] text-white font-bold text-[11px] cursor-pointer flex items-center gap-1"
-                          >
-                            <span>Advance</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </button>
-                        )}
+                        <ActionMoreMenu
+                          title="Order Actions"
+                          buttonClassName="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                          items={getOrderMoreMenuItems(order)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1142,6 +1134,10 @@ export default function OrdersPage() {
                 <h3 className="text-xl font-black text-slate-900 mt-0.5">
                   {activeSelectedOrder.id}
                 </h3>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Placed on {activeSelectedOrder.orderDate || 'Today'} at{' '}
+                  {activeSelectedOrder.placedAt || 'Just now'}
+                </p>
               </div>
               <button
                 type="button"
@@ -1217,9 +1213,14 @@ export default function OrdersPage() {
                     }}
                   />
                   <div className="min-w-0">
-                    <p className="font-bold text-slate-900 truncate">
-                      {activeSelectedOrder.customer?.name}
-                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="font-bold text-slate-900 truncate">
+                        {activeSelectedOrder.customer?.name}
+                      </p>
+                      <span className="px-1.5 py-0.2 rounded bg-white border border-slate-200 text-slate-600 text-[9px] font-mono font-bold">
+                        ID: {activeSelectedOrder.customerId || activeSelectedOrder.customer?.id || 'GUEST'}
+                      </span>
+                    </div>
                     <p className="text-[11px] text-slate-500 truncate">
                       {activeSelectedOrder.customer?.email}
                     </p>
@@ -1237,7 +1238,7 @@ export default function OrdersPage() {
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-bold">
-                      {activeSelectedOrder.customer?.ordersCount || 1} total orders
+                      {activeSelectedOrder.customer?.ordersCount ?? 0} total orders
                     </span>
                     <span className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
                       ₹{(activeSelectedOrder.customer?.totalSpent || 0).toLocaleString()} spent
@@ -1303,28 +1304,96 @@ export default function OrdersPage() {
               <div className="flex justify-between text-slate-600">
                 <span>Items Subtotal</span>
                 <span className="font-bold">
-                  ₹{activeSelectedOrder.subtotal || activeSelectedOrder.amount}
+                  ₹{(activeSelectedOrder.subtotal ?? activeSelectedOrder.amount ?? 0).toLocaleString()}
                 </span>
               </div>
               {activeSelectedOrder.discount > 0 && (
                 <div className="flex justify-between text-[#ff5722] font-semibold">
                   <span>Coupon Discount ({activeSelectedOrder.couponCode || 'Promo'})</span>
-                  <span>-₹{activeSelectedOrder.discount}</span>
+                  <span>-₹{activeSelectedOrder.discount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-600">
                 <span>Delivery Charge</span>
-                <span>₹{activeSelectedOrder.deliveryFee ?? 35}</span>
+                <span
+                  className={
+                    Number(activeSelectedOrder.deliveryFee ?? 0) === 0
+                      ? 'font-bold text-emerald-700'
+                      : ''
+                  }
+                >
+                  {Number(activeSelectedOrder.deliveryFee ?? 0) === 0
+                    ? 'FREE'
+                    : `₹${activeSelectedOrder.deliveryFee}`}
+                </span>
               </div>
               <div className="flex justify-between text-slate-600">
-                <span>GST & Food Services Tax (5%)</span>
-                <span>₹{activeSelectedOrder.tax ?? 30}</span>
+                <span>GST &amp; Food Services Tax</span>
+                <span>₹{(activeSelectedOrder.tax ?? 0).toLocaleString()}</span>
               </div>
               <div className="pt-2 border-t border-emerald-200 flex justify-between font-black text-sm text-emerald-950">
                 <span>Grand Total</span>
                 <span>
-                  ₹{(activeSelectedOrder.grandTotal || activeSelectedOrder.amount).toLocaleString()}
+                  ₹{(activeSelectedOrder.grandTotal || activeSelectedOrder.amount || 0).toLocaleString()}
                 </span>
+              </div>
+            </div>
+
+            {/* Guarded Status Management Controls */}
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-500 uppercase text-[10px]">
+                  Dynamic Status Transition (Guarded)
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  Current: {activeSelectedOrder.status}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  'Pending',
+                  'Confirmed',
+                  'Preparing',
+                  'Ready for Pickup',
+                  'Out for Delivery',
+                  'Delivered',
+                  'Cancelled',
+                  'Rejected',
+                ].map((st) => {
+                  const isCurrent = activeSelectedOrder.status === st;
+                  const check = isValidStatusTransition(activeSelectedOrder.status, st);
+                  const disabled = !isCurrent && !check.valid;
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      disabled={disabled}
+                      title={isCurrent ? 'Current Order Status' : check.reason || `Move to ${st}`}
+                      onClick={() => {
+                        if (isCurrent || !check.valid) return;
+                        if (st === 'Cancelled') {
+                          setCancelModalOrder(activeSelectedOrder);
+                        } else if (st === 'Rejected') {
+                          setRejectModalOrder(activeSelectedOrder);
+                        } else {
+                          const ok = updateOrderStatus(activeSelectedOrder.id, st);
+                          if (ok) toast.success(`Order ${activeSelectedOrder.id} moved to "${st}"`);
+                        }
+                      }}
+                      className={`py-2 px-2 rounded-xl text-[11px] font-bold border transition-all text-center ${
+                        isCurrent
+                          ? 'bg-[#064e3b] text-white border-[#064e3b] shadow-xs cursor-default'
+                          : disabled
+                          ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                          : st === 'Cancelled' || st === 'Rejected'
+                          ? 'bg-rose-50/70 text-rose-700 border-rose-200 hover:bg-rose-100 cursor-pointer'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 cursor-pointer'
+                      }`}
+                    >
+                      {st === 'Ready for Pickup' ? 'Ready' : st}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1535,6 +1604,18 @@ export default function OrdersPage() {
 
               <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1 text-[11px]">
                 <div className="flex justify-between">
+                  <span>Order Date:</span>
+                  <span className="font-bold">
+                    {invoiceOrder.orderDate || 'Today'} • {invoiceOrder.placedAt || 'Just now'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Customer ID:</span>
+                  <span className="font-bold">
+                    {invoiceOrder.customerId || invoiceOrder.customer?.id || 'GUEST'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span>Customer:</span>
                   <span className="font-bold">{invoiceOrder.customer?.name}</span>
                 </div>
@@ -1572,26 +1653,30 @@ export default function OrdersPage() {
               <div className="border-t border-dashed border-slate-300 pt-2 space-y-1 text-[11px]">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>₹{invoiceOrder.subtotal || invoiceOrder.amount}</span>
+                  <span>₹{(invoiceOrder.subtotal ?? invoiceOrder.amount ?? 0).toLocaleString()}</span>
                 </div>
                 {invoiceOrder.discount > 0 && (
                   <div className="flex justify-between text-orange-600">
                     <span>Discount:</span>
-                    <span>-₹{invoiceOrder.discount}</span>
+                    <span>-₹{invoiceOrder.discount.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span>GST (5%):</span>
-                  <span>₹{invoiceOrder.tax ?? 30}</span>
+                  <span>GST &amp; Taxes:</span>
+                  <span>₹{(invoiceOrder.tax ?? 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee:</span>
-                  <span>₹{invoiceOrder.deliveryFee ?? 35}</span>
+                  <span>
+                    {Number(invoiceOrder.deliveryFee ?? 0) === 0
+                      ? 'FREE'
+                      : `₹${invoiceOrder.deliveryFee}`}
+                  </span>
                 </div>
                 <div className="flex justify-between font-bold text-sm border-t border-dashed border-slate-300 pt-1">
                   <span>GRAND TOTAL</span>
                   <span>
-                    ₹{(invoiceOrder.grandTotal || invoiceOrder.amount).toLocaleString()}
+                    ₹{(invoiceOrder.grandTotal || invoiceOrder.amount || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -1626,14 +1711,10 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Place New Order Modal */}
-      <PlaceOrderModal isOpen={isPlaceOrderOpen} onClose={() => setIsPlaceOrderOpen(false)} />
-
       {/* Customer Inspection & Editing Modals (Seamless Two-Way Link with Customers Page) */}
       <CustomerDetailsModal />
       <EditCustomerModal />
       <DeleteCustomerConfirmModal />
-      <CreateCustomerOrderModal />
     </div>
   );
 }

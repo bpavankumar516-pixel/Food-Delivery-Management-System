@@ -59,7 +59,7 @@ export const RESTAURANT_SPECIFIC_MENUS = {
       inStock: true,
       spicyLevel: 'Medium',
       description: 'Thick-cut golden potato fries served with an authentic African bird’s eye chili peri-peri seasoning shaker pouch.',
-      image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=500',
+      image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=500',
     },
     {
       id: 'bk_5',
@@ -397,7 +397,7 @@ export const RESTAURANT_SPECIFIC_MENUS = {
       inStock: true,
       spicyLevel: 'Mild',
       description: 'Crunchy golden salted french fries served with warm melted cheese dipping sauce.',
-      image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=500',
+      image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=500',
     },
   ],
 
@@ -577,7 +577,7 @@ export const RESTAURANT_SPECIFIC_MENUS = {
       inStock: true,
       spicyLevel: 'Hot',
       description: 'Iconic thin-cut salted fries served with McDonald’s legendary red spice shaker mix.',
-      image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=500',
+      image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=500',
     },
     {
       id: 'mcd_4',
@@ -1087,7 +1087,7 @@ export function generateDefaultMenuForRestaurant(restaurant) {
       'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=500',
       'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=500',
       'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=500',
     ],
     Pizza: [
       'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=500',
@@ -1122,7 +1122,7 @@ export function generateDefaultMenuForRestaurant(restaurant) {
     'Fast Food': [
       'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&q=80&w=500',
       'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=500',
       'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&q=80&w=500',
     ],
     Others: [

@@ -10,6 +10,18 @@ import {
   Tag,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { useOrders } from '../context/OrderContext';
@@ -103,7 +115,9 @@ export default function ReportsPage() {
       map[name].revenue += o.grandTotal || o.amount || 0;
     });
 
-    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+    return Object.values(map)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 7);
   }, [validCompletedOrders]);
 
   // Top Selling Items Aggregation
@@ -340,192 +354,312 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Graphical Analytics Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left 2 Cols: Revenue & Volume Chart */}
-            <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-black text-base text-slate-900">Revenue Trajectory</h3>
-                  <p className="text-xs text-slate-400">Visual breakdown across fulfillment batches</p>
-                </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Live Computed
-                </span>
-              </div>
-
-              {/* Responsive SVG Bar Visualization */}
-              <div className="pt-4">
-                <div className="h-64 flex items-end justify-between gap-3 px-2 border-b border-slate-200 pb-2">
-                  {validCompletedOrders.slice(0, 8).map((ord, idx) => {
-                    const maxVal = Math.max(...validCompletedOrders.map((o) => o.grandTotal || o.amount || 500));
-                    const heightPercent = Math.max(Math.round(((ord.grandTotal || ord.amount || 100) / maxVal) * 100), 15);
-
-                    return (
-                      <div key={ord.id} className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                          ₹{ord.grandTotal || ord.amount}
-                        </span>
-                        <div
-                          className="w-full bg-gradient-to-t from-[#064e3b] to-[#10b981] rounded-t-xl group-hover:from-[#ff5722] group-hover:to-[#ff8a65] transition-all shadow-xs"
-                          style={{ height: `${heightPercent}%` }}
-                        />
-                        <span className="text-[10px] font-bold text-slate-400 truncate max-w-[50px]">
-                          {ord.id.replace('#', '')}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-between text-[11px] text-slate-400 pt-2 px-2 font-medium">
-                  <span>Earliest Orders</span>
-                  <span>Latest Batch</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Col: Order Status Distribution */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-black text-base text-slate-900">Order Status Distribution</h3>
-                <PieChart className="w-4 h-4 text-slate-400" />
-              </div>
-
-              <div className="space-y-3 pt-2">
-                {[
-                  { label: 'Delivered', count: statusBreakdown.Delivered, color: 'bg-emerald-500' },
-                  { label: 'Out for Delivery', count: statusBreakdown['Out for Delivery'], color: 'bg-sky-500' },
-                  { label: 'Preparing / Kitchen', count: statusBreakdown.Preparing, color: 'bg-amber-500' },
-                  { label: 'Pending / Confirmed', count: statusBreakdown.Pending + statusBreakdown.Confirmed, color: 'bg-indigo-500' },
-                  { label: 'Cancelled / Rejected', count: statusBreakdown.Cancelled + statusBreakdown.Rejected, color: 'bg-rose-500' },
-                ].map((s) => {
-                  const pct =
-                    filteredOrders.length > 0 ? Math.round((s.count / filteredOrders.length) * 100) : 0;
-                  return (
-                    <div key={s.label} className="space-y-1">
-                      <div className="flex justify-between text-xs font-bold text-slate-700">
-                        <span className="flex items-center gap-2">
-                          <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
-                          <span>{s.label}</span>
-                        </span>
-                        <span>
-                          {s.count} ({pct}%)
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full ${s.color} rounded-full`} style={{ width: `${pct}%` }} />
-                      </div>
+          {/* TAB 1: ORDERS & SALES OVERVIEW (RECHARTS VISUALIZATIONS + TABLES) */}
+          {reportTab === 'overview' && (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left 2 Cols: Recharts Revenue & Order Volume Bar Chart */}
+                <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-black text-base text-slate-900">
+                        Revenue by Partner Kitchen ({timeframe})
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Interactive Recharts comparison computed from valid orders (Top 7)
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Top 7 Live
+                    </span>
+                  </div>
 
-          {/* Restaurant & Menu Sales Breakdown Tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Merchant Revenue */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Store className="w-4 h-4 text-[#064e3b]" />
-                  <h3 className="font-black text-base text-slate-900">Restaurant Performance</h3>
+                  {restaurantPerformance.length === 0 ? (
+                    <div className="h-64 flex items-center justify-center text-xs text-slate-400">
+                      No revenue data recorded for the selected filters.
+                    </div>
+                  ) : (
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={restaurantPerformance.slice(0, 7)}
+                          margin={{ top: 10, right: 12, left: 0, bottom: 8 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fill: '#94a3b8', fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
+                          />
+                          <Tooltip
+                            formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Net Sales']}
+                            contentStyle={{
+                              backgroundColor: '#163A2D',
+                              borderRadius: '12px',
+                              borderColor: '#064e3b',
+                              color: '#fff',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                            }}
+                            itemStyle={{ color: '#fff' }}
+                          />
+                          <Bar dataKey="revenue" fill="#163A2D" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs text-slate-400 font-medium">Ranked by revenue</span>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-400 uppercase font-bold border-y border-slate-100">
-                    <tr>
-                      <th className="py-2.5 px-3">Restaurant</th>
-                      <th className="py-2.5 px-3 text-center">Orders</th>
-                      <th className="py-2.5 px-3 text-right">Net Sales</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {restaurantPerformance.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="py-6 text-center text-slate-400">
-                          No restaurant data in this range.
-                        </td>
-                      </tr>
-                    ) : (
-                      restaurantPerformance.map((r, i) => (
-                        <tr key={r.name} className="hover:bg-slate-50">
-                          <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] flex items-center justify-center font-black">
-                              {i + 1}
-                            </span>
-                            <span>{r.name}</span>
-                          </td>
-                          <td className="py-3 px-3 text-center font-bold text-slate-700">
-                            {r.ordersCount}
-                          </td>
-                          <td className="py-3 px-3 text-right font-black text-emerald-700">
-                            ₹{r.revenue.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                {/* Right Col: Recharts Order Status Distribution */}
+                <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-black text-base text-slate-900">Order Status Distribution</h3>
+                    <PieChart className="w-4 h-4 text-slate-400" />
+                  </div>
 
-            {/* Top Selling Food Items */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-[#ff5722]" />
-                  <h3 className="font-black text-base text-slate-900">Top-Selling Dishes</h3>
+                  {(() => {
+                    const statusData = [
+                      { name: 'Delivered', value: statusBreakdown.Delivered, color: '#163A2D' },
+                      {
+                        name: 'Out for Delivery',
+                        value: statusBreakdown['Out for Delivery'],
+                        color: '#0284c7',
+                      },
+                      { name: 'Preparing', value: statusBreakdown.Preparing, color: '#FF6B35' },
+                      {
+                        name: 'Pending / Confirmed',
+                        value: statusBreakdown.Pending + statusBreakdown.Confirmed,
+                        color: '#6366f1',
+                      },
+                      {
+                        name: 'Cancelled / Rejected',
+                        value: statusBreakdown.Cancelled + statusBreakdown.Rejected,
+                        color: '#ef4444',
+                      },
+                    ];
+                    const activeSlices = statusData.filter((d) => d.value > 0);
+                    return (
+                      <>
+                        <div className="h-44 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPieChart>
+                              <Pie
+                                data={
+                                  activeSlices.length > 0
+                                    ? activeSlices
+                                    : [{ name: 'No Data', value: 1, color: '#e2e8f0' }]
+                                }
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={42}
+                                outerRadius={68}
+                                paddingAngle={2}
+                              >
+                                {(activeSlices.length > 0
+                                  ? activeSlices
+                                  : [{ name: 'No Data', value: 1, color: '#e2e8f0' }]
+                                ).map((entry) => (
+                                  <Cell key={entry.name} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: '#163A2D',
+                                  borderRadius: '10px',
+                                  borderColor: '#064e3b',
+                                  color: '#fff',
+                                  fontSize: '11px',
+                                }}
+                                itemStyle={{ color: '#fff' }}
+                              />
+                            </RechartsPieChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {statusData.map((s) => {
+                            const pct =
+                              filteredOrders.length > 0
+                                ? Math.round((s.value / filteredOrders.length) * 100)
+                                : 0;
+                            return (
+                              <div
+                                key={s.name}
+                                className="flex items-center justify-between text-xs font-bold text-slate-700"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full"
+                                    style={{ backgroundColor: s.color }}
+                                  />
+                                  <span>{s.name}</span>
+                                </span>
+                                <span>
+                                  {s.value} ({pct}%)
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
-                <span className="text-xs text-slate-400 font-medium">By volume sold</span>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-400 uppercase font-bold border-y border-slate-100">
-                    <tr>
-                      <th className="py-2.5 px-3">Dish Name</th>
-                      <th className="py-2.5 px-3 text-center">Qty Sold</th>
-                      <th className="py-2.5 px-3 text-right">Gross Sales</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {topSellingItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="py-6 text-center text-slate-400">
-                          No menu item sales recorded in this range.
-                        </td>
-                      </tr>
-                    ) : (
-                      topSellingItems.map((item, i) => (
-                        <tr key={item.name} className="hover:bg-slate-50">
-                          <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-orange-50 text-[#ff5722] text-[10px] flex items-center justify-center font-black">
-                              {i + 1}
-                            </span>
-                            <span className="truncate max-w-[200px]">{item.name}</span>
-                          </td>
-                          <td className="py-3 px-3 text-center font-black text-slate-800">
-                            {item.qty}
-                          </td>
-                          <td className="py-3 px-3 text-right font-black text-emerald-700">
-                            ₹{item.revenue.toLocaleString()}
-                          </td>
+              {/* Restaurant & Menu Sales Breakdown Tables */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Merchant Revenue */}
+                <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Store className="w-4 h-4 text-[#064e3b]" />
+                      <h3 className="font-black text-base text-slate-900">
+                        Restaurant Performance (Top 7)
+                      </h3>
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium">Top 7 ranked by revenue</span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-400 uppercase font-bold border-y border-slate-100">
+                        <tr>
+                          <th className="py-2.5 px-3">Restaurant</th>
+                          <th className="py-2.5 px-3 text-center">Orders</th>
+                          <th className="py-2.5 px-3 text-right">Net Sales</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {restaurantPerformance.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="py-6 text-center text-slate-400">
+                              No restaurant data in this range.
+                            </td>
+                          </tr>
+                        ) : (
+                          restaurantPerformance.map((r, i) => (
+                            <tr key={r.name} className="hover:bg-slate-50">
+                              <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] flex items-center justify-center font-black">
+                                  {i + 1}
+                                </span>
+                                <span>{r.name}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-slate-700">
+                                {r.ordersCount}
+                              </td>
+                              <td className="py-3 px-3 text-right font-black text-emerald-700">
+                                ₹{r.revenue.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
-          {/* Customer Insights & Coupon Performance Sections (when selected or in overview) */}
+                {/* Top Selling Food Items */}
+                <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4 text-[#ff5722]" />
+                      <h3 className="font-black text-base text-slate-900">Top-Selling Dishes</h3>
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium">By volume sold</span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-400 uppercase font-bold border-y border-slate-100">
+                        <tr>
+                          <th className="py-2.5 px-3">Dish Name</th>
+                          <th className="py-2.5 px-3 text-center">Qty Sold</th>
+                          <th className="py-2.5 px-3 text-right">Gross Sales</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {topSellingItems.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="py-6 text-center text-slate-400">
+                              No menu item sales recorded in this range.
+                            </td>
+                          </tr>
+                        ) : (
+                          topSellingItems.map((item, i) => (
+                            <tr key={item.name} className="hover:bg-slate-50">
+                              <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-orange-50 text-[#ff5722] text-[10px] flex items-center justify-center font-black">
+                                  {i + 1}
+                                </span>
+                                <span className="truncate max-w-[200px]">{item.name}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center font-black text-slate-800">
+                                {item.qty}
+                              </td>
+                              <td className="py-3 px-3 text-right font-black text-emerald-700">
+                                ₹{item.revenue.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* TAB 2: CUSTOMER INSIGHTS */}
           {reportTab === 'customers' && (
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+            <div className="space-y-6">
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                <div>
+                  <h3 className="font-black text-base text-slate-900">
+                    Top Customers Spend Comparison
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Cumulative spend across top 8 customer accounts
+                  </p>
+                </div>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[...customers]
+                        .sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0))
+                        .slice(0, 8)
+                        .map((c) => ({
+                          name: c.firstName || c.fullName?.split(' ')[0] || 'User',
+                          spent: Number(c.totalSpent) || 0,
+                        }))}
+                      margin={{ top: 10, right: 12, left: 0, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
+                      <Tooltip
+                        formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Total Spent']}
+                        contentStyle={{ backgroundColor: '#163A2D', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                        itemStyle={{ color: '#fff' }}
+                      />
+                      <Bar dataKey="spent" fill="#FF6B35" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#064e3b]" />
@@ -590,10 +724,37 @@ export default function ReportsPage() {
                 </table>
               </div>
             </div>
+            </div>
           )}
 
           {reportTab === 'coupons' && (
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+            <div className="space-y-6">
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                <div>
+                  <h3 className="font-black text-base text-slate-900">Coupon Redemptions by Code</h3>
+                  <p className="text-xs text-slate-400">Live usage counts across active and scheduled promos</p>
+                </div>
+                <div className="h-60 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={coupons.map((c) => ({ code: c.code, uses: Number(c.usedCount) || 0 }))}
+                      margin={{ top: 10, right: 12, left: 0, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="code" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        formatter={(val) => [val, 'Redemptions']}
+                        contentStyle={{ backgroundColor: '#163A2D', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                        itemStyle={{ color: '#fff' }}
+                      />
+                      <Bar dataKey="uses" fill="#FF6B35" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Tag className="w-4 h-4 text-[#ff5722]" />
@@ -628,6 +789,7 @@ export default function ReportsPage() {
                   </div>
                 ))}
               </div>
+            </div>
             </div>
           )}
         </main>

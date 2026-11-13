@@ -70,7 +70,9 @@ export default function CustomerRestaurantCard({ restaurant, compact = false }) 
                 : 'bg-white/95 text-[#163A2D]'
             }`}
           >
-            {isClosed ? 'Closed Now' : restaurant.formattedFee || `₹${restaurant.deliveryFee ?? 35} fee`}
+            {isClosed
+              ? 'Closed Now'
+              : `₹${restaurant.effectiveDeliveryFee ?? restaurant.deliveryFee ?? 35} fee`}
           </span>
         </div>
       </div>
@@ -78,9 +80,16 @@ export default function CustomerRestaurantCard({ restaurant, compact = false }) 
       {/* Card Body */}
       <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2.5">
         <div>
-          <h3 className="font-black text-sm sm:text-[15px] text-[#202A24] truncate group-hover:text-[#FF6B35] transition-colors">
-            {restaurant.name}
-          </h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-black text-sm sm:text-[15px] text-[#202A24] truncate group-hover:text-[#FF6B35] transition-colors">
+              {restaurant.name}
+            </h3>
+            {restaurant.zone === 'remote' && (
+              <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[9.5px] font-bold shrink-0">
+                Express
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
             {Array.isArray(restaurant.cuisines)
               ? restaurant.cuisines.slice(0, 2).join(' • ')
@@ -90,12 +99,16 @@ export default function CustomerRestaurantCard({ restaurant, compact = false }) 
           <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 font-medium mt-2">
             <span className="inline-flex items-center gap-1 text-[#202A24] font-semibold">
               <Clock className="w-3.5 h-3.5 text-[#163A2D]" />
-              <span>{restaurant.deliveryTime || '25-35 mins'}</span>
+              <span>{restaurant.effectiveEta || restaurant.deliveryTime || '25-35 mins'}</span>
             </span>
             {!compact && (
-              <span className="inline-flex items-center gap-1 truncate max-w-[120px]">
+              <span className="inline-flex items-center gap-1 truncate max-w-[140px]">
                 <MapPin className="w-3 h-3 text-[#FF6B35] shrink-0" />
-                <span className="truncate">{restaurant.location?.split(',')[0]}</span>
+                <span className="truncate">
+                  {restaurant.distanceKm != null
+                    ? `${restaurant.distanceKm} km away`
+                    : restaurant.location?.split(',')[0]}
+                </span>
               </span>
             )}
           </div>

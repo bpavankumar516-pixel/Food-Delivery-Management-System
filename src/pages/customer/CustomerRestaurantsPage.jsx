@@ -1,13 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Store, Leaf, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Store, Leaf, SlidersHorizontal, X, MapPin, LocateFixed } from 'lucide-react';
 import CustomerLayout from '../../components/customerPortal/CustomerLayout';
 import CustomerRestaurantCard from '../../components/customerPortal/CustomerRestaurantCard';
 import { useCustomerPortal } from '../../context/CustomerPortalContext';
 
 export default function CustomerRestaurantsPage() {
   const [searchParams] = useSearchParams();
-  const { restaurants, preferences } = useCustomerPortal();
+  const {
+    restaurants,
+    preferences,
+    liveLocation,
+    selectedLocation,
+    setIsLocationModalOpen,
+  } = useCustomerPortal();
 
   const [query, setQuery] = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState(
@@ -18,18 +24,28 @@ export default function CustomerRestaurantsPage() {
   const [maxFee, setMaxFee] = useState('All'); // 'All' | '35' | '50'
   const [pureVegOnly, setPureVegOnly] = useState(!!preferences.vegOnlyDefault);
   const [openOnly, setOpenOnly] = useState(false);
+  const [nearbyOnly, setNearbyOnly] = useState(false);
   const [sortBy, setSortBy] = useState(
     searchParams.get('sort') === 'rating' ? 'rating' : 'recommended'
   );
   const [visibleCount, setVisibleCount] = useState(12);
   const [isFiltering, setIsFiltering] = useState(false);
 
-  // Brief skeleton shimmer when switching primary filters
+  // Sync URL query params if user navigates via Home category/banner CTA
+  useEffect(() => {
+    const cuisineParam = searchParams.get('cuisine');
+    const sortParam = searchParams.get('sort');
+    if (cuisineParam) setSelectedCuisine(cuisineParam);
+    if (sortParam === 'rating') setSortBy('rating');
+  }, [searchParams]);
+
+  // Brief skeleton shimmer + reset pagination when filters change
   useEffect(() => {
     setIsFiltering(true);
+    setVisibleCount(12);
     const t = setTimeout(() => setIsFiltering(false), 180);
     return () => clearTimeout(t);
-  }, [selectedCuisine, minRating, maxDeliveryTime, maxFee, pureVegOnly, openOnly, sortBy]);
+  }, [selectedCuisine, minRating, maxDeliveryTime, maxFee, pureVegOnly, openOnly, nearbyOnly, sortBy, query]);
 
   const cuisineOptions = useMemo(() => {
     const set = new Set(['All']);
@@ -65,11 +81,13 @@ export default function CustomerRestaurantsPage() {
 
       if (pureVegOnly && !r.pureVeg) return false;
       if (openOnly && r.status !== 'Open') return false;
+      if (nearbyOnly && liveLocation && !r.isNearby) return false;
 
       if (minRating !== 'All' && (r.rating || 0) < parseFloat(minRating)) return false;
-      if (maxDeliveryTime === '35' && parseMaxMinutes(r.deliveryTime) > 35) return false;
-      if (maxFee === '35' && (r.deliveryFee ?? 40) > 35) return false;
-      if (maxFee === '50' && (r.deliveryFee ?? 40) > 50) return false;
+      if (maxDeliveryTime === '35' && parseMaxMinutes(r.effectiveEta || r.deliveryTime) > 35) return false;
+      const feeVal = r.effectiveDeliveryFee ?? r.deliveryFee ?? 40;
+      if (maxFee === '35' && feeVal > 35) return false;
+      if (maxFee === '50' && feeVal > 50) return false;
 
       return true;
     });
@@ -77,16 +95,27 @@ export default function CustomerRestaurantsPage() {
     const sorted = [...list];
     if (sortBy === 'rating') {
       sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortBy === 'distance') {
+      sorted.sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
     } else if (sortBy === 'delivery-time') {
-      sorted.sort((a, b) => parseMaxMinutes(a.deliveryTime) - parseMaxMinutes(b.deliveryTime));
+      sorted.sort(
+        (a, b) =>
+          parseMaxMinutes(a.effectiveEta || a.deliveryTime) -
+          parseMaxMinutes(b.effectiveEta || b.deliveryTime)
+      );
     } else if (sortBy === 'fee-low') {
-      sorted.sort((a, b) => (a.deliveryFee ?? 40) - (b.deliveryFee ?? 40));
+      sorted.sort(
+        (a, b) =>
+          (a.effectiveDeliveryFee ?? a.deliveryFee ?? 40) -
+          (b.effectiveDeliveryFee ?? b.deliveryFee ?? 40)
+      );
     } else if (sortBy === 'name') {
       sorted.sort((a, b) => a.name.localeCompare(b.name));
     } else {
-      // Open first, then rating
+      // Open + Nearby first, then rating
       sorted.sort((a, b) => {
         if (a.status !== b.status) return a.status === 'Open' ? -1 : 1;
+        if (liveLocation && a.isNearby !== b.isNearby) return a.isNearby ? -1 : 1;
         return (b.rating || 0) - (a.rating || 0);
       });
     }
@@ -97,6 +126,8 @@ export default function CustomerRestaurantsPage() {
     selectedCuisine,
     pureVegOnly,
     openOnly,
+    nearbyOnly,
+    liveLocation,
     minRating,
     maxDeliveryTime,
     maxFee,
@@ -113,6 +144,7 @@ export default function CustomerRestaurantsPage() {
     setMaxFee('All');
     setPureVegOnly(false);
     setOpenOnly(false);
+    setNearbyOnly(false);
     setSortBy('recommended');
   };
 
@@ -129,8 +161,28 @@ export default function CustomerRestaurantsPage() {
               <h1 className="text-2xl sm:text-3xl font-black text-[#202A24] tracking-tight">
                 Explore Restaurants
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                {filteredRestaurants.length} curated partner kitchens synced live with Foodix
+              <p className="text-xs sm:text-sm text-slate-600 font-medium flex flex-wrap items-center gap-1.5">
+                <span>{filteredRestaurants.length} partner kitchens</span>
+                <span>•</span>
+                {selectedLocation ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    className="inline-flex items-center gap-1 font-bold text-[#163A2D] hover:text-[#FF6B35] underline cursor-pointer"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-[#FF6B35]" />
+                    <span>Near {selectedLocation}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    className="inline-flex items-center gap-1 font-bold text-[#FF6B35] underline cursor-pointer"
+                  >
+                    <LocateFixed className="w-3.5 h-3.5" />
+                    <span>Set live location for distance & fees</span>
+                  </button>
+                )}
               </p>
             </div>
           </div>
@@ -210,6 +262,21 @@ export default function CustomerRestaurantsPage() {
               <span>Open Now</span>
             </button>
 
+            {liveLocation && (
+              <button
+                type="button"
+                onClick={() => setNearbyOnly((v) => !v)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                  nearbyOnly
+                    ? 'bg-[#FF6B35] text-white border-[#FF6B35]'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-orange-50'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Nearby Only</span>
+              </button>
+            )}
+
             <select
               value={minRating}
               onChange={(e) => setMinRating(e.target.value)}
@@ -247,6 +314,7 @@ export default function CustomerRestaurantsPage() {
               className="px-3.5 py-2 rounded-xl bg-[#FFF8F0] border border-orange-200/70 text-xs font-bold text-[#202A24] cursor-pointer"
             >
               <option value="recommended">Sort: Recommended</option>
+              {liveLocation && <option value="distance">Sort: Nearest First</option>}
               <option value="rating">Sort: Top Rated</option>
               <option value="delivery-time">Sort: Fastest Delivery</option>
               <option value="fee-low">Sort: Lowest Delivery Fee</option>

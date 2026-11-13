@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 
-const NotificationSupportContext = createContext(null);
+export const NotificationSupportContext = createContext(null);
 const NOTIF_KEY = 'foodix_notifications_v2';
 const TICKET_KEY = 'foodix_support_tickets_v2';
 

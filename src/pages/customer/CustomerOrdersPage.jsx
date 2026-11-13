@@ -343,12 +343,39 @@ export default function CustomerOrdersPage() {
               <div className="flex justify-between">
                 <span>Delivery + Tax</span>
                 <span>
-                  ₹{(inspectOrder.deliveryFee ?? 35) + (inspectOrder.tax ?? 25)}
+                  ₹
+                  {(
+                    (inspectOrder.deliveryFee ?? 0) +
+                    (inspectOrder.tax ??
+                      Math.max(
+                        (inspectOrder.grandTotal || inspectOrder.amount || 0) -
+                          (inspectOrder.subtotal || inspectOrder.amount || 0) +
+                          (inspectOrder.discount || 0) -
+                          (inspectOrder.deliveryFee ?? 0),
+                        0
+                      ))
+                  ).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between font-black text-sm text-[#163A2D] pt-1 border-t border-emerald-200">
                 <span>Grand Total</span>
                 <span>₹{(inspectOrder.grandTotal || inspectOrder.amount).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-emerald-200/60 text-[11px]">
+                <span className="text-slate-600 font-medium">Payment Mode</span>
+                <span className="font-bold text-slate-900">{inspectOrder.paymentMethod || 'Online'}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-600 font-medium">Payment Status</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    (inspectOrder.paymentStatus || '').toLowerCase().includes('cash')
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  ● {inspectOrder.paymentStatus || 'Paid'}
+                </span>
               </div>
             </div>
 

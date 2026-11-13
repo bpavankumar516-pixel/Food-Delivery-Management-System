@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart,
@@ -37,6 +37,10 @@ export default function CustomerCartPage() {
 
   const [couponInput, setCouponInput] = useState(appliedCouponCode || '');
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+
+  useEffect(() => {
+    setCouponInput(appliedCouponCode || '');
+  }, [appliedCouponCode]);
 
   const activeCoupons = useMemo(
     () => coupons.filter((c) => c.status === 'Active').slice(0, 4),
@@ -295,7 +299,7 @@ export default function CustomerCartPage() {
                 </h3>
                 <button
                   type="button"
-                  onClick={() => navigate('/customer/offers')}
+                  onClick={() => navigate('/customer/settings?tab=offers')}
                   className="text-[11px] font-bold text-[#163A2D] hover:underline cursor-pointer"
                 >
                   All Offers
@@ -318,7 +322,7 @@ export default function CustomerCartPage() {
                 </button>
               </form>
 
-              {appliedCouponCode && cartTotals.couponResult?.valid && (
+              {appliedCouponCode && cartTotals.couponResult?.valid ? (
                 <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
                   <span className="font-bold text-emerald-800">
                     ✓ {appliedCouponCode} applied!
@@ -334,7 +338,23 @@ export default function CustomerCartPage() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-              )}
+              ) : appliedCouponCode && cartTotals.couponResult && !cartTotals.couponResult.valid ? (
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 text-[11px]">
+                  <span className="font-bold text-amber-800">
+                    {appliedCouponCode}: {cartTotals.couponResult.message}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeCoupon();
+                      setCouponInput('');
+                    }}
+                    className="text-rose-600 hover:text-rose-700 font-bold cursor-pointer shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {activeCoupons.map((cp) => (

@@ -112,16 +112,16 @@ export default function MenuManagementPage() {
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const currentDishes = filteredItems.slice(startIndex, endIndex);
 
-  const categoryPills = [
-    { label: 'All', count: categoryCounts.All },
-    { label: 'Pizza', count: categoryCounts.Pizza || 0 },
-    { label: 'Burger', count: categoryCounts.Burger || 0 },
-    { label: 'Pasta', count: categoryCounts.Pasta || 0 },
-    { label: 'South Indian', count: categoryCounts['South Indian'] || 0 },
-    { label: 'Chinese', count: categoryCounts.Chinese || 0 },
-    { label: 'Desserts', count: categoryCounts.Desserts || 0 },
-    ...(categoryCounts.Snacks ? [{ label: 'Snacks', count: categoryCounts.Snacks }] : []),
-  ];
+  const categoryPills = useMemo(() => {
+    const orderedBase = ['All', 'Pizza', 'Burger', 'Pasta', 'South Indian', 'Chinese', 'Desserts', 'Snacks'];
+    const dynamicExtras = Object.keys(categoryCounts).filter(
+      (cat) => !orderedBase.includes(cat) && (categoryCounts[cat] || 0) > 0
+    );
+    return [...orderedBase, ...dynamicExtras].map((label) => ({
+      label,
+      count: categoryCounts[label] || 0,
+    }));
+  }, [categoryCounts]);
 
   return (
     <div className="flex h-screen bg-[#f8faf9] text-slate-800 overflow-hidden font-sans select-none">
@@ -194,12 +194,13 @@ export default function MenuManagementPage() {
                   className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-600 cursor-pointer"
                 >
                   <option value="All">All Categories</option>
-                  <option value="Pizza">Pizza</option>
-                  <option value="Burger">Burger</option>
-                  <option value="Pasta">Pasta</option>
-                  <option value="South Indian">South Indian</option>
-                  <option value="Chinese">Chinese</option>
-                  <option value="Desserts">Desserts</option>
+                  {categoryPills
+                    .filter((c) => c.label !== 'All')
+                    .map((c) => (
+                      <option key={c.label} value={c.label}>
+                        {c.label}
+                      </option>
+                    ))}
                 </select>
 
                 {/* All Types (Veg / Non-Veg) Dropdown */}

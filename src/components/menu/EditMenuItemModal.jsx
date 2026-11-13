@@ -1,18 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  UtensilsCrossed,
-  DollarSign,
-  Upload,
-  Check,
-  AlertCircle,
-  Leaf,
-  Sparkles,
-  Store,
-  Clock,
-  Flame,
-} from 'lucide-react';
-import { toast } from 'react-toastify';
+import { X, UtensilsCrossed, Upload } from 'lucide-react';
 import { useRestaurants } from '../../context/RestaurantContext';
 
 const PRESET_DISH_IMAGES = [
@@ -23,7 +10,7 @@ const PRESET_DISH_IMAGES = [
   { label: 'Masala Dosa', url: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?auto=format&fit=crop&q=80&w=600' },
   { label: 'Chocolate Cake', url: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&q=80&w=600' },
   { label: 'Pepperoni Pizza', url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&q=80&w=600' },
-  { label: 'French Fries', url: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=600' },
+  { label: 'French Fries', url: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=600' },
 ];
 
 export default function EditMenuItemModal({ isOpen, onClose, item }) {

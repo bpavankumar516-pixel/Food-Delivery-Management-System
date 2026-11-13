@@ -36,12 +36,6 @@ import CustomerCartPage from './pages/customer/CustomerCartPage';
 import CustomerCheckoutPage from './pages/customer/CustomerCheckoutPage';
 import CustomerOrdersPage from './pages/customer/CustomerOrdersPage';
 import CustomerTrackingPage from './pages/customer/CustomerTrackingPage';
-import CustomerFavoritesPage from './pages/customer/CustomerFavoritesPage';
-import CustomerOffersPage from './pages/customer/CustomerOffersPage';
-import CustomerAddressesPage from './pages/customer/CustomerAddressesPage';
-import CustomerProfilePage from './pages/customer/CustomerProfilePage';
-import CustomerNotificationsPage from './pages/customer/CustomerNotificationsPage';
-import CustomerSupportPage from './pages/customer/CustomerSupportPage';
 import CustomerSettingsPage from './pages/customer/CustomerSettingsPage';
 
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -60,12 +54,12 @@ function RootRedirect() {
 export default function App() {
   return (
     <AuthProvider>
-      <RestaurantProvider>
-        <CouponProvider>
-          <CustomerProvider>
-            <OrderProvider>
-              <DashboardProvider>
-                <NotificationSupportProvider>
+      <NotificationSupportProvider>
+        <RestaurantProvider>
+          <CouponProvider>
+            <CustomerProvider>
+              <OrderProvider>
+                <DashboardProvider>
                   <SettingsProvider>
                     <CustomerPortalProvider>
                       <BrowserRouter>
@@ -166,6 +160,10 @@ export default function App() {
                               </ProtectedRoute>
                             }
                           />
+                          <Route
+                            path="/support"
+                            element={<Navigate to="/settings?tab=support" replace />}
+                          />
 
                           {/* ================= CUSTOMER PORTAL ROUTES ================= */}
                           <Route
@@ -246,51 +244,27 @@ export default function App() {
                           />
                           <Route
                             path="/customer/favorites"
-                            element={
-                              <ProtectedRoute allowedRoles={['Customer']}>
-                                <CustomerFavoritesPage />
-                              </ProtectedRoute>
-                            }
+                            element={<Navigate to="/customer/settings?tab=favorites" replace />}
                           />
                           <Route
                             path="/customer/offers"
-                            element={
-                              <ProtectedRoute allowedRoles={['Customer']}>
-                                <CustomerOffersPage />
-                              </ProtectedRoute>
-                            }
+                            element={<Navigate to="/customer/settings?tab=offers" replace />}
                           />
                           <Route
                             path="/customer/addresses"
-                            element={
-                              <ProtectedRoute allowedRoles={['Customer']}>
-                                <CustomerAddressesPage />
-                              </ProtectedRoute>
-                            }
+                            element={<Navigate to="/customer/settings?tab=addresses" replace />}
                           />
                           <Route
                             path="/customer/profile"
-                            element={
-                              <ProtectedRoute allowedRoles={['Customer']}>
-                                <CustomerProfilePage />
-                              </ProtectedRoute>
-                            }
+                            element={<Navigate to="/customer/settings?tab=profile" replace />}
                           />
                           <Route
                             path="/customer/notifications"
-                            element={
-                              <ProtectedRoute allowedRoles={['Customer']}>
-                                <CustomerNotificationsPage />
-                              </ProtectedRoute>
-                            }
+                            element={<Navigate to="/customer/settings?tab=notifications" replace />}
                           />
                           <Route
                             path="/customer/support"
-                            element={
-                              <ProtectedRoute allowedRoles={['Customer']}>
-                                <CustomerSupportPage />
-                              </ProtectedRoute>
-                            }
+                            element={<Navigate to="/customer/settings?tab=support" replace />}
                           />
                           <Route
                             path="/customer/settings"
@@ -305,8 +279,9 @@ export default function App() {
                           <Route path="*" element={<RootRedirect />} />
                         </Routes>
 
-                        {/* Global Toast Notifications */}
+                        {/* Global Toast Notifications (Strictly 1 toast at a time) */}
                         <ToastContainer
+                          limit={1}
                           position="top-right"
                           autoClose={3500}
                           hideProgressBar={false}
@@ -317,16 +292,17 @@ export default function App() {
                           draggable
                           pauseOnHover
                           theme="colored"
+                          style={{ zIndex: 99999 }}
                         />
                       </BrowserRouter>
                     </CustomerPortalProvider>
                   </SettingsProvider>
-                </NotificationSupportProvider>
-              </DashboardProvider>
-            </OrderProvider>
-          </CustomerProvider>
-        </CouponProvider>
-      </RestaurantProvider>
+                </DashboardProvider>
+              </OrderProvider>
+            </CustomerProvider>
+          </CouponProvider>
+        </RestaurantProvider>
+      </NotificationSupportProvider>
     </AuthProvider>
   );
 }

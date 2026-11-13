@@ -30,7 +30,6 @@ export default function CustomerDetailsModal() {
     isDetailsModalOpen,
     closeCustomerDetails,
     openEditModal,
-    openCreateOrderModal,
     toggleBlockCustomer,
   } = useCustomers();
   const orderCtx = React.useContext(OrderContext);
@@ -48,25 +47,27 @@ export default function CustomerDetailsModal() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Merge live orders from OrderContext with customer's embedded orders
-  const liveCustomerOrders = orderCtx?.getOrdersForCustomer
+  // Derive orders, order count, and spend strictly from live OrderContext orders when loaded
+  const hasOrderContext = Boolean(orderCtx?.getOrdersForCustomer);
+  const liveCustomerOrders = hasOrderContext
     ? orderCtx.getOrdersForCustomer(selectedCustomer.id, selectedCustomer.email)
-    : [];
-  const orderMap = new Map();
-  [...liveCustomerOrders, ...(selectedCustomer.orders || [])].forEach((ord) => {
-    if (ord?.id && !orderMap.has(ord.id)) {
-      orderMap.set(ord.id, {
-        ...ord,
-        amount: ord.grandTotal || ord.amount || 0,
-        date: ord.date || ord.placedAt || 'Recent',
-        deliveryAddress: ord.deliveryAddress || ord.customer?.address || selectedCustomer.address,
-      });
-    }
-  });
-  const orders = Array.from(orderMap.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  const ordersCount = Math.max(selectedCustomer.ordersCount ?? 0, orders.length);
-  const totalSpent = selectedCustomer.totalSpent ?? orders.reduce((s, o) => s + (o.amount || 0), 0);
-  const avgOrderValue = ordersCount > 0 ? Math.round(totalSpent / ordersCount) : 0;
+    : selectedCustomer.orders || [];
+
+  const orders = [...liveCustomerOrders]
+    .map((ord) => ({
+      ...ord,
+      amount: Number(ord.grandTotal || ord.amount || 0),
+      date: ord.orderDate || ord.date || ord.placedAt || 'Recent',
+      deliveryAddress: ord.deliveryAddress || ord.customer?.address || selectedCustomer.address,
+    }))
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  const fulfilledOrders = orders.filter(
+    (o) => o.status !== 'Cancelled' && o.status !== 'Rejected'
+  );
+  const ordersCount = orders.length;
+  const totalSpent = fulfilledOrders.reduce((s, o) => s + (o.amount || 0), 0);
+  const avgOrderValue = fulfilledOrders.length > 0 ? Math.round(totalSpent / fulfilledOrders.length) : 0;
   const isBlocked = selectedCustomer.status === 'Blocked';
 
   const formatJoinedDate = (dateStr) => {
@@ -515,23 +516,8 @@ export default function CustomerDetailsModal() {
             )}
           </button>
 
-          {/* Right Actions: Place Order, Edit & Close */}
+          {/* Right Actions: Edit & Close */}
           <div className="flex items-center gap-2">
-            {openCreateOrderModal && !isBlocked && (
-              <button
-                type="button"
-                onClick={() => {
-                  const target = selectedCustomer;
-                  closeCustomerDetails();
-                  openCreateOrderModal(target);
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#064e3b] hover:bg-[#043d2e] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
-              >
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>Place Order</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={() => {

@@ -6,16 +6,15 @@ import {
   Phone,
   Ban,
   CheckCircle2,
-  ShoppingBag,
 } from 'lucide-react';
 import { useCustomers } from '../../context/CustomerContext';
+import ActionMoreMenu from '../common/ActionMoreMenu';
 
 export default function CustomerTableView({ customers }) {
   const {
     openCustomerDetails,
     openEditModal,
     openDeleteModal,
-    openCreateOrderModal,
     toggleBlockCustomer,
   } = useCustomers();
 
@@ -126,39 +125,9 @@ export default function CustomerTableView({ customers }) {
                   {formatJoinedDate(c.registeredDate, idx)}
                 </td>
 
-                {/* Actions: View (Dark Green), Edit (Orange), Block/Unblock, Delete (Red) */}
+                {/* Actions: Block/Unblock + More Menu (View, Edit, Delete) */}
                 <td className="py-3.5 px-6 text-center">
                   <div className="flex items-center justify-center gap-2">
-                    {/* View Details button */}
-                    <button
-                      type="button"
-                      onClick={() => openCustomerDetails(c)}
-                      className="w-8 h-8 rounded-lg bg-[#053b2c] hover:bg-[#074d39] text-white flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                      title="View Customer Details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-
-                    {/* Place Order button */}
-                    <button
-                      type="button"
-                      onClick={() => openCreateOrderModal(c)}
-                      className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                      title="Place New Order for Customer"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                    </button>
-
-                    {/* Edit button */}
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(c)}
-                      className="w-8 h-8 rounded-lg bg-[#ff5722] hover:bg-[#e64a19] text-white flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                      title="Edit Customer"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-
                     {/* Block / Unblock Quick Action button */}
                     <button
                       type="button"
@@ -177,15 +146,32 @@ export default function CustomerTableView({ customers }) {
                       )}
                     </button>
 
-                    {/* Delete button */}
-                    <button
-                      type="button"
-                      onClick={() => openDeleteModal(c)}
-                      className="w-8 h-8 rounded-lg bg-[#ef4444] hover:bg-[#dc2626] text-white flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                      title="Delete Customer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* More Actions Menu */}
+                    <ActionMoreMenu
+                      title="Customer Actions"
+                      items={[
+                        {
+                          id: 'view',
+                          label: 'View Details',
+                          icon: Eye,
+                          onClick: () => openCustomerDetails(c),
+                        },
+                        {
+                          id: 'edit',
+                          label: 'Edit Customer',
+                          icon: Edit3,
+                          onClick: () => openEditModal(c),
+                        },
+                        {
+                          id: 'delete',
+                          label: 'Delete Customer',
+                          icon: Trash2,
+                          tone: 'danger',
+                          dividerBefore: true,
+                          onClick: () => openDeleteModal(c),
+                        },
+                      ]}
+                    />
                   </div>
                 </td>
               </tr>

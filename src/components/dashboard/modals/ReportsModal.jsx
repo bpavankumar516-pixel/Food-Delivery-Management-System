@@ -1,22 +1,69 @@
 import React from 'react';
-import { X, BarChart3, Download, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { X, BarChart3, Download, ArrowUpRight, CheckCircle2, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../../context/DashboardContext';
 import { toast } from 'react-toastify';
 
 export default function ReportsModal() {
-  const { isReportsOpen, setIsReportsOpen, stats, revenueData } = useDashboard();
+  const navigate = useNavigate();
+  const { isReportsOpen, setIsReportsOpen, stats, revenueData, allOrders } = useDashboard();
 
   if (!isReportsOpen) return null;
 
+  const eligibleOrders = (allOrders || []).filter(
+    (o) => !['Cancelled', 'Rejected'].includes(o.status)
+  );
+  const completionRate =
+    eligibleOrders.length > 0
+      ? Math.round((stats.deliveredOrders / Math.max(stats.totalOrders, 1)) * 100)
+      : 0;
+
   const handleDownload = () => {
-    toast.success('Foodix Executive Business Report downloaded (PDF)!');
+    const rows = [
+      ['Metric', 'Value'],
+      ['Gross Platform Sales', `₹${(stats.eligibleRevenue || 0).toLocaleString('en-IN')}`],
+      ['Average Order Value (AOV)', `₹${stats.averageOrderValue || 0}`],
+      ['Total Orders', stats.totalOrders || 0],
+      ['Delivered Orders', stats.deliveredOrders || 0],
+      ['Active Restaurants', stats.totalRestaurants || 0],
+      ['Total Customers', stats.totalCustomers || 0],
+    ];
+    const csvContent = rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `foodix-executive-summary-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Foodix Executive Summary exported as CSV!');
   };
 
   const metrics = [
-    { label: 'Gross Platform Sales', value: '₹4,82,900', change: '+22.4%', positive: true },
-    { label: 'Average Order Value (AOV)', value: '₹386', change: '+5.1%', positive: true },
-    { label: 'Average Delivery Time', value: '24 mins', change: '-3.2 mins', positive: true },
-    { label: 'Customer Satisfaction Score', value: '4.8 / 5.0', change: '+0.2', positive: true },
+    {
+      label: 'Gross Platform Sales',
+      value: `₹${(stats.eligibleRevenue || 0).toLocaleString('en-IN')}`,
+      change: `${revenueData.growth || '+0%'} trend`,
+      positive: true,
+    },
+    {
+      label: 'Average Order Value (AOV)',
+      value: `₹${stats.averageOrderValue || 0}`,
+      change: `${eligibleOrders.length} valid orders`,
+      positive: true,
+    },
+    {
+      label: 'Order Fulfillment Rate',
+      value: `${completionRate}%`,
+      change: `${stats.deliveredOrders} delivered`,
+      positive: true,
+    },
+    {
+      label: 'Avg Restaurant Rating',
+      value: `${stats.avgRestaurantRating || '4.5'} / 5.0`,
+      change: `${stats.totalCustomers} customers`,
+      positive: true,
+    },
   ];
 
   return (
@@ -74,23 +121,36 @@ export default function ReportsModal() {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={handleDownload}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export PDF</span>
+            <span>Export CSV</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setIsReportsOpen(false)}
-            className="px-5 py-2 rounded-xl bg-[#05291e] hover:bg-[#073829] text-white text-xs font-bold transition-colors cursor-pointer"
-          >
-            Done
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsReportsOpen(false);
+                navigate('/reports');
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-[#05291e] text-xs font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Full Analytics</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsReportsOpen(false)}
+              className="px-5 py-2 rounded-xl bg-[#05291e] hover:bg-[#073829] text-white text-xs font-bold transition-colors cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>

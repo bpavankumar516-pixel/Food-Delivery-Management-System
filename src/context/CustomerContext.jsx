@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import customerService from '../services/customerService';
 import { INITIAL_CUSTOMERS } from '../data/mockCustomers';
@@ -24,7 +24,12 @@ export function CustomerProvider({ children }) {
     } catch (e) {
       console.warn('Failed to parse customers from localStorage', e);
     }
-    return INITIAL_CUSTOMERS;
+    return INITIAL_CUSTOMERS.map((c) => ({
+      ...c,
+      totalSpent: 0,
+      ordersCount: 0,
+      orders: [],
+    }));
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -53,18 +58,15 @@ export function CustomerProvider({ children }) {
       const existing = prevMap.get(u.id);
       if (!existing) return u;
 
-      // Preserve any newly created orders on this customer
+      // Preserve any live reconciled orders & spend on this customer
       const existingOrders = Array.isArray(existing.orders) ? existing.orders : [];
-      const apiOrderIds = new Set((u.orders || []).map((o) => o.id));
-      const extraOrders = existingOrders.filter((o) => !apiOrderIds.has(o.id));
-      const combinedOrders = [...extraOrders, ...(u.orders || [])];
 
       return {
         ...u,
         status: existing.status || u.status,
-        orders: combinedOrders,
-        ordersCount: Math.max(existing.ordersCount || 0, u.ordersCount || 0),
-        totalSpent: Math.max(existing.totalSpent || 0, u.totalSpent || 0),
+        orders: existingOrders,
+        ordersCount: existing.ordersCount ?? 0,
+        totalSpent: existing.totalSpent ?? 0,
       };
     });
 
@@ -212,24 +214,30 @@ export function CustomerProvider({ children }) {
       blockedCustomers: blocked,
       totalRevenue,
       totalOrders,
-      avgOrderValue: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 350,
+      avgOrderValue: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
     };
   }, [customers]);
 
   // Toggle Block / Unblock Customer
   const toggleBlockCustomer = (customerId) => {
+    let customerName = '';
+    let nextStatus = '';
+
     setCustomers((prev) =>
       prev.map((c) => {
         if (c.id === customerId) {
-          const nextStatus = c.status === 'Blocked' ? 'Active' : 'Blocked';
-          toast.info(`Customer "${c.fullName}" is now ${nextStatus}`);
-          const updated = { ...c, status: nextStatus };
-          setSelectedCustomer((curr) => (curr?.id === customerId ? updated : curr));
-          return updated;
+          nextStatus = c.status === 'Blocked' ? 'Active' : 'Blocked';
+          customerName = c.fullName;
+          return { ...c, status: nextStatus };
         }
         return c;
       })
     );
+
+    if (customerName) {
+      toast.info(`Customer "${customerName}" is now ${nextStatus}`);
+      setSelectedCustomer((curr) => (curr?.id === customerId ? { ...curr, status: nextStatus } : curr));
+    }
   };
 
   // Actions
@@ -398,7 +406,7 @@ export function CustomerProvider({ children }) {
     );
   };
 
-  // Sync status change from OrdersPage back into Customer's order history
+  // Sync status change from OrdersPage back into Customer's order history & spend totals
   const syncCustomerOrderStatus = (orderId, newStatus) => {
     if (!orderId) return;
     setCustomers((prev) =>
@@ -406,8 +414,19 @@ export function CustomerProvider({ children }) {
         if (!Array.isArray(c.orders) || !c.orders.some((o) => o.id === orderId)) {
           return c;
         }
+        const target = c.orders.find((o) => o.id === orderId);
+        const wasVoided = target && ['Cancelled', 'Rejected'].includes(target.status);
+        const nowVoided = ['Cancelled', 'Rejected'].includes(newStatus);
+        const orderAmt = Number(target?.grandTotal || target?.amount || 0);
+        let nextTotalSpent = Number(c.totalSpent || 0);
+        if (!wasVoided && nowVoided) {
+          nextTotalSpent = Math.max(0, nextTotalSpent - orderAmt);
+        } else if (wasVoided && !nowVoided) {
+          nextTotalSpent += orderAmt;
+        }
         const updated = {
           ...c,
+          totalSpent: nextTotalSpent,
           orders: c.orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
         };
         if (selectedCustomer?.id === c.id) {
@@ -417,6 +436,75 @@ export function CustomerProvider({ children }) {
       })
     );
   };
+
+  // Reconcile every customer's ordersCount, totalSpent & order list directly from OrderContext live orders
+  const reconcileCustomersWithOrders = useCallback((liveOrders = []) => {
+    if (!Array.isArray(liveOrders)) return;
+    setCustomers((prev) => {
+      let anyChanged = false;
+      const next = prev.map((cust) => {
+        const custEmail = cust.email?.trim().toLowerCase();
+        const matched = liveOrders
+          .filter(
+            (o) =>
+              o.customerId === cust.id ||
+              o.customer?.id === cust.id ||
+              (custEmail && o.customer?.email?.trim().toLowerCase() === custEmail)
+          )
+          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        const nextOrdersCount = matched.length;
+        const nextTotalSpent = matched
+          .filter((o) => o.status !== 'Cancelled' && o.status !== 'Rejected')
+          .reduce((sum, o) => sum + Number(o.grandTotal || o.amount || 0), 0);
+
+        const prevOrders = Array.isArray(cust.orders) ? cust.orders : [];
+        const ordersDiffer =
+          prevOrders.length !== matched.length ||
+          matched.some(
+            (ord, idx) =>
+              prevOrders[idx]?.id !== ord.id ||
+              prevOrders[idx]?.status !== ord.status ||
+              Number(prevOrders[idx]?.amount || 0) !== Number(ord.grandTotal || ord.amount || 0)
+          );
+
+        if (
+          cust.ordersCount === nextOrdersCount &&
+          cust.totalSpent === nextTotalSpent &&
+          !ordersDiffer
+        ) {
+          return cust;
+        }
+
+        anyChanged = true;
+        return {
+          ...cust,
+          ordersCount: nextOrdersCount,
+          totalSpent: nextTotalSpent,
+          orders: matched.map((o) => ({
+            id: o.id,
+            restaurant: o.restaurant || 'Foodix Kitchen',
+            restaurantId: o.restaurantId || 'rest_001',
+            date: o.orderDate || o.placedAt || 'Recent',
+            timestamp: o.timestamp || Date.now(),
+            amount: Number(o.grandTotal || o.amount || 0),
+            grandTotal: Number(o.grandTotal || o.amount || 0),
+            status: o.status || 'Pending',
+            paymentMethod: o.paymentMethod || 'Online',
+            deliveryAddress: o.deliveryAddress || o.customer?.address || cust.address,
+            items: o.items || [],
+          })),
+        };
+      });
+
+      return anyChanged ? next : prev;
+    });
+  }, []);
+
+  const liveSelectedCustomer = useMemo(() => {
+    if (!selectedCustomer) return null;
+    return customers.find((c) => c.id === selectedCustomer.id) || selectedCustomer;
+  }, [selectedCustomer, customers]);
 
   // Ensure authenticated Customer portal user has a linked profile in CustomerContext
   const ensureCustomerAccount = (authUser) => {
@@ -498,7 +586,7 @@ export function CustomerProvider({ children }) {
         totalPages,
         itemsPerPage,
         // Modals & Selection: View, Edit, Add, Delete, Create Order
-        selectedCustomer,
+        selectedCustomer: liveSelectedCustomer,
         setSelectedCustomer,
         openCustomerDetails,
         closeCustomerDetails,
@@ -518,6 +606,7 @@ export function CustomerProvider({ children }) {
         closeCreateOrderModal,
         recordCustomerOrder,
         syncCustomerOrderStatus,
+        reconcileCustomersWithOrders,
         ensureCustomerAccount,
         openDeleteModal,
         closeDeleteModal,

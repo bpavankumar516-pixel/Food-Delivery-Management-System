@@ -21,11 +21,14 @@ import {
   ArrowRight,
   Compass,
   Bike,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import Logo from '../common/Logo';
 import UserAvatar from '../common/UserAvatar';
 import ConfirmDialog from './ConfirmDialog';
 import FoodItemDetailModal from './FoodItemDetailModal';
+import CustomerLocationModal from './CustomerLocationModal';
 import { useAuth } from '../../context/AuthContext';
 import { useCustomerPortal } from '../../context/CustomerPortalContext';
 
@@ -35,12 +38,16 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
   const navigate = useNavigate();
 
   const {
+    liveLocation,
     selectedLocation,
-    setSelectedLocation,
-    availableLocations,
+    locationLoading,
+    setIsLocationModalOpen,
+    detectCurrentLocation,
     cartItemCount,
     cartTotals,
     cartRestaurant,
+    favoriteRestaurantIds,
+    favoriteDishIds,
     myUnreadNotificationsCount,
     restaurants,
     allPlatformDishes,
@@ -50,31 +57,21 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
     cancelReplaceCart,
   } = useCustomerPortal();
 
+  const favoritesCount = favoriteRestaurantIds.length + favoriteDishIds.length;
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [topSearch, setTopSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Main sidebar navigation items
   const navItems = [
     { name: 'Home', path: '/customer/home', icon: Home },
     { name: 'Restaurants', path: '/customer/restaurants', icon: UtensilsCrossed },
     { name: 'Search & Explore', path: '/customer/search', icon: Compass },
     { name: 'My Orders', path: '/customer/orders', icon: ShoppingBag },
     { name: 'Live Tracking', path: '/customer/tracking', icon: Truck },
-    { name: 'Cart', path: '/customer/cart', icon: ShoppingCart, badge: cartItemCount },
-    { name: 'Favorites', path: '/customer/favorites', icon: Heart },
-    { name: 'Offers & Coupons', path: '/customer/offers', icon: Tag },
-    { name: 'Profile', path: '/customer/profile', icon: User },
-    { name: 'Addresses', path: '/customer/addresses', icon: MapPin },
-    {
-      name: 'Notifications',
-      path: '/customer/notifications',
-      icon: Bell,
-      badge: myUnreadNotificationsCount,
-    },
-    { name: 'Help & Support', path: '/customer/support', icon: HelpCircle },
     { name: 'Settings', path: '/customer/settings', icon: Settings },
   ];
 
@@ -228,50 +225,44 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
                 <Menu className="w-5 h-5" />
               </button>
 
-              {/* Location Dropdown Pill */}
-              <div className="relative shrink-0">
+              {/* Live Location Selector + Refresh Control */}
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
-                    setLocationDropdownOpen((o) => !o);
                     setProfileDropdownOpen(false);
+                    setIsLocationModalOpen(true);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#FFF8F0] border border-orange-200/70 text-xs font-bold text-[#202A24] hover:border-[#FF6B35] transition-colors cursor-pointer"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-colors cursor-pointer ${
+                    liveLocation
+                      ? 'bg-[#FFF8F0] border-orange-200/80 text-[#202A24] hover:border-[#FF6B35]'
+                      : 'bg-orange-50 border-[#FF6B35] text-[#FF6B35] animate-pulse'
+                  }`}
+                  title={liveLocation?.fullAddress || 'Set your delivery location'}
                 >
-                  <MapPin className="w-3.5 h-3.5 text-[#FF6B35] shrink-0" />
-                  <span className="max-w-[95px] sm:max-w-[130px] truncate">{selectedLocation}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  {locationLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 text-[#FF6B35] animate-spin shrink-0" />
+                  ) : (
+                    <MapPin className="w-3.5 h-3.5 text-[#FF6B35] shrink-0" />
+                  )}
+                  <span className="max-w-[115px] sm:max-w-[180px] truncate">
+                    {locationLoading
+                      ? 'Detecting location...'
+                      : selectedLocation || 'Use Current Location'}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </button>
 
-                {locationDropdownOpen && (
-                  <div className="absolute left-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50">
-                    <p className="px-2.5 py-1 text-[10px] font-bold uppercase text-slate-400">
-                      Delivery Area
-                    </p>
-                    <div className="max-h-60 overflow-y-auto space-y-0.5">
-                      {availableLocations.map((loc) => (
-                        <button
-                          key={loc}
-                          type="button"
-                          onClick={() => {
-                            setSelectedLocation(loc);
-                            setLocationDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between cursor-pointer ${
-                            selectedLocation === loc
-                              ? 'bg-[#FFF8F0] text-[#FF6B35] font-bold'
-                              : 'text-slate-700 hover:bg-slate-50'
-                          }`}
-                        >
-                          <span>{loc}</span>
-                          {selectedLocation === loc && (
-                            <span className="w-2 h-2 rounded-full bg-[#FF6B35]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  disabled={locationLoading}
+                  onClick={() => detectCurrentLocation({ saveAsAddress: true })}
+                  className="p-2 rounded-full bg-[#E7EFE8] hover:bg-[#163A2D] text-[#163A2D] hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+                  title="Detect / Refresh Current GPS Location"
+                  aria-label="Refresh current location"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} />
+                </button>
               </div>
 
               {/* Warm Cream Search Bar with Suggestions */}
@@ -360,13 +351,38 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
               </div>
             </div>
 
-            {/* Right: Notifications Bell + Cart Pill + User Profile */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Right: Mobile Search + Favorites + Notifications + Cart + Profile */}
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
               <button
                 type="button"
-                onClick={() => navigate('/customer/notifications')}
+                onClick={() => navigate('/customer/search')}
+                className="sm:hidden p-2 rounded-full bg-[#FFF8F0] border border-orange-200/70 hover:border-[#FF6B35] text-[#202A24] cursor-pointer transition-colors"
+                aria-label="Search food and restaurants"
+              >
+                <Search className="w-4.5 h-4.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/customer/settings?tab=favorites')}
+                className="relative p-2 rounded-full bg-[#FFF8F0] border border-orange-200/70 hover:border-[#FF6B35] text-[#202A24] cursor-pointer transition-colors"
+                aria-label="Favorites"
+                title="Saved Restaurants & Dishes"
+              >
+                <Heart className={`w-4.5 h-4.5 ${favoritesCount > 0 ? 'text-[#FF6B35]' : ''}`} />
+                {favoritesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#163A2D] text-white text-[10px] font-black flex items-center justify-center">
+                    {favoritesCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/customer/settings?tab=notifications')}
                 className="relative p-2 rounded-full bg-[#FFF8F0] border border-orange-200/70 hover:border-[#FF6B35] text-[#202A24] cursor-pointer transition-colors"
                 aria-label="Notifications"
+                title="Notifications"
               >
                 <Bell className="w-4.5 h-4.5" />
                 {myUnreadNotificationsCount > 0 && (
@@ -380,6 +396,7 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
                 type="button"
                 onClick={() => navigate('/customer/cart')}
                 className="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#E7EFE8] hover:bg-emerald-100 text-[#163A2D] font-bold text-xs cursor-pointer transition-colors"
+                aria-label="Shopping Cart"
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span className="hidden sm:inline">Cart</span>
@@ -396,7 +413,6 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
                   type="button"
                   onClick={() => {
                     setProfileDropdownOpen((o) => !o);
-                    setLocationDropdownOpen(false);
                   }}
                   className="flex items-center gap-2 p-1 pr-2 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
                 >
@@ -415,16 +431,19 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
                 </button>
 
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2.5 z-50 space-y-1">
+                  <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2.5 z-50 space-y-1">
                     <div className="p-2.5 rounded-xl bg-[#FFF8F0] mb-1">
                       <p className="text-xs font-black text-[#202A24] truncate">{user?.name}</p>
                       <p className="text-[10.5px] text-slate-500 truncate">{user?.email}</p>
                     </div>
                     {[
-                      { label: 'My Profile', path: '/customer/profile', icon: User },
-                      { label: 'Saved Addresses', path: '/customer/addresses', icon: MapPin },
-                      { label: 'My Orders', path: '/customer/orders', icon: ShoppingBag },
-                      { label: 'Settings', path: '/customer/settings', icon: Settings },
+                      { label: 'My Profile', path: '/customer/settings?tab=profile', icon: User },
+                      { label: 'My Addresses', path: '/customer/settings?tab=addresses', icon: MapPin },
+                      { label: 'Favorites', path: '/customer/settings?tab=favorites', icon: Heart },
+                      { label: 'Offers & Coupons', path: '/customer/settings?tab=offers', icon: Tag },
+                      { label: 'Notifications', path: '/customer/settings?tab=notifications', icon: Bell },
+                      { label: 'Help & Support', path: '/customer/settings?tab=support', icon: HelpCircle },
+                      { label: 'Account Settings', path: '/customer/settings?tab=account', icon: Settings },
                     ].map((link) => {
                       const LIcon = link.icon;
                       return (
@@ -499,7 +518,7 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
           { label: 'Search', path: '/customer/search', icon: Search },
           { label: 'Cart', path: '/customer/cart', icon: ShoppingCart, badge: cartItemCount },
           { label: 'Orders', path: '/customer/orders', icon: ShoppingBag },
-          { label: 'Profile', path: '/customer/profile', icon: User },
+          { label: 'Settings', path: '/customer/settings', icon: Settings },
         ].map((tab) => {
           const TabIcon = tab.icon;
           const active = location.pathname.startsWith(tab.path);
@@ -523,8 +542,9 @@ export default function CustomerLayout({ children, hideStickyCart = false }) {
         })}
       </nav>
 
-      {/* Global Food Item Detail Modal */}
+      {/* Global Food Item Detail Modal & Live Location Modal */}
       <FoodItemDetailModal />
+      <CustomerLocationModal />
 
       {/* Cart Restaurant Conflict Dialog */}
       <ConfirmDialog

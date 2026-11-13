@@ -223,23 +223,25 @@ export function DineInProvider({ children }) {
 
   // --- Cart Operations ---
   const addToCart = (item, customNotes = '') => {
+    let toastType = 'add';
+    let nextQty = 1;
+
     setCart((prev) => {
       const existingIndex = prev.findIndex((i) => i.id === item.id);
       if (existingIndex > -1) {
         const next = [...prev];
         const existing = next[existingIndex];
+        nextQty = existing.qty + 1;
         next[existingIndex] = {
           ...existing,
-          qty: existing.qty + 1,
+          qty: nextQty,
           notes: customNotes || existing.notes,
         };
-        toast.info(`Increased quantity of "${item.name}" (${next[existingIndex].qty})`, {
-          autoClose: 1800,
-        });
+        toastType = 'qty';
         return next;
       }
 
-      toast.success(`Added "${item.name}" to Dine-In Cart`, { autoClose: 2000 });
+      toastType = 'add';
       return [
         ...prev,
         {
@@ -256,16 +258,29 @@ export function DineInProvider({ children }) {
         },
       ];
     });
+
+    if (toastType === 'qty') {
+      toast.info(`Increased quantity of "${item.name}" (${nextQty})`, {
+        autoClose: 1800,
+      });
+    } else {
+      toast.success(`Added "${item.name}" to Dine-In Cart`, { autoClose: 2000 });
+    }
   };
 
   const removeFromCart = (itemId) => {
+    let removedItemName = '';
     setCart((prev) => {
       const item = prev.find((i) => i.id === itemId);
       if (item) {
-        toast.info(`Removed "${item.name}" from cart`, { autoClose: 1800 });
+        removedItemName = item.name;
       }
       return prev.filter((i) => i.id !== itemId);
     });
+
+    if (removedItemName) {
+      toast.info(`Removed "${removedItemName}" from cart`, { autoClose: 1800 });
+    }
   };
 
   const updateQuantity = (itemId, newQty) => {
@@ -437,6 +452,10 @@ export function DineInProvider({ children }) {
   // --- Order Status Lifecycle Management ---
   // Pending -> Preparing -> Ready to Serve -> Served -> Completed -> Cancelled
   const updateOrderStatus = (orderId, newStatus) => {
+    let releasedTableId = null;
+    let releasedTableName = '';
+    let updatedOrderSnap = null;
+
     setDineInOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
@@ -446,28 +465,36 @@ export function DineInProvider({ children }) {
             updatedAt: new Date().toISOString(),
           };
 
-          // If Completed or Cancelled -> Automatically Release Table
+          // If Completed or Cancelled -> Track Table to Release
           if (newStatus === 'Completed' || newStatus === 'Cancelled') {
             if (ord.tableId) {
-              releaseTable(ord.tableId);
-              toast.info(`${ord.tableName} has been released and is now Available!`, {
-                autoClose: 3500,
-              });
+              releasedTableId = ord.tableId;
+              releasedTableName = ord.tableName;
             }
           }
 
-          if (inspectOrder?.id === orderId) {
-            setInspectOrder(updated);
-          }
-          if (receiptOrder?.id === orderId) {
-            setReceiptOrder(updated);
-          }
-
+          updatedOrderSnap = updated;
           return updated;
         }
         return ord;
       })
     );
+
+    if (updatedOrderSnap) {
+      if (inspectOrder?.id === orderId) {
+        setInspectOrder(updatedOrderSnap);
+      }
+      if (receiptOrder?.id === orderId) {
+        setReceiptOrder(updatedOrderSnap);
+      }
+    }
+
+    if (releasedTableId) {
+      releaseTable(releasedTableId);
+      toast.info(`${releasedTableName} has been released and is now Available!`, {
+        autoClose: 3500,
+      });
+    }
 
     toast.success(`Order ${orderId} updated to "${newStatus}"!`);
   };

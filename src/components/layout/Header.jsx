@@ -24,7 +24,13 @@ export default function Header({ onMenuClick }) {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { notifications, unreadCount } = useNotificationSupport?.() || { notifications: [], unreadCount: 0 };
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    tickets = [],
+  } = useNotificationSupport?.() || { notifications: [], unreadCount: 0, markAsRead: null, tickets: [] };
+  const openTicketsCount = tickets.filter((t) => t.status === 'Open' || t.status === 'In Progress').length;
 
   const isRestaurantsPage = location.pathname.startsWith('/restaurants');
   const isMenuPage = location.pathname.startsWith('/menu');
@@ -149,14 +155,27 @@ export default function Header({ onMenuClick }) {
                       <div
                         key={act.id}
                         onClick={() => {
+                          if (markAsRead && act.isRead === false) {
+                            markAsRead(act.id);
+                          }
                           setIsNotificationsOpen(false);
-                          if (act.orderId || act.type === 'order') {
+                          if (act.type === 'support') {
+                            navigate('/settings?tab=support');
+                          } else if (act.orderId || act.type === 'order' || act.type === 'status') {
                             navigate('/orders');
+                          } else {
+                            navigate('/settings?tab=support');
                           }
                         }}
-                        className="flex items-start gap-2.5 p-2 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
+                        className={`flex items-start gap-2.5 p-2 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer ${
+                          act.isRead === false ? 'bg-orange-50/40' : ''
+                        }`}
                       >
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                        <div
+                          className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                            act.isRead === false ? 'bg-[#ff5722]' : 'bg-emerald-500'
+                          }`}
+                        />
                         <div className="flex-1 text-left">
                           <p className="text-xs font-semibold text-slate-800 leading-tight">{act.title}</p>
                           {(act.message || act.subtitle) && (
@@ -170,7 +189,17 @@ export default function Header({ onMenuClick }) {
                     ))}
                   </div>
 
-                  <div className="pt-2 mt-2 border-t border-slate-100 text-center">
+                  <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between px-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNotificationsOpen(false);
+                        navigate('/settings?tab=support');
+                      }}
+                      className="text-xs font-bold text-[#ff5722] hover:text-[#e64a19] cursor-pointer"
+                    >
+                      Support & Alerts →
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -179,25 +208,31 @@ export default function Header({ onMenuClick }) {
                       }}
                       className="text-xs font-bold text-[#064e3b] hover:text-[#043d2e] cursor-pointer"
                     >
-                      View All Live Orders →
+                      Live Orders →
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Chat / Message icon */}
+            {/* Support Inbox Shortcut */}
             <button
               type="button"
               onClick={() => {
-                setIsNotificationsOpen(!isNotificationsOpen);
+                setIsNotificationsOpen(false);
                 setIsProfileOpen(false);
+                navigate('/settings?tab=support');
               }}
-              className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs cursor-pointer hidden sm:flex items-center justify-center"
-              aria-label="Alerts"
-              title="Recent Activity"
+              className="relative p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs cursor-pointer hidden sm:flex items-center justify-center"
+              aria-label="Customer Support Inbox"
+              title="Customer Support Tickets"
             >
               <MessageSquare className="w-4.5 h-4.5 text-slate-700" />
+              {openTicketsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-[#ff5722] text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow-xs">
+                  {openTicketsCount}
+                </span>
+              )}
             </button>
 
             {/* User Profile: Name-Based Letter Avatar by default + Name + Super Administrator */}

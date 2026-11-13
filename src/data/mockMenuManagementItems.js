@@ -167,7 +167,7 @@ export const INITIAL_MENU_MANAGEMENT_ITEMS = [
     price: 89,
     originalPrice: 119,
     description: 'Crispy golden fries',
-    image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=600',
+    image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=600',
     inStock: true,
     isFavorite: false,
     rating: 4.6,

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { toast } from "react-toastify";
 
 const AuthContext = createContext(null);
 
@@ -326,34 +327,53 @@ export function AuthProvider({ children }) {
 
   // Update Profile (Real-time dynamic profile updates across platform)
   const updateProfile = async (updatedData) => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const updatedUser = {
-          ...user,
-          ...updatedData,
-        };
-        setUser(updatedUser);
-        localStorage.setItem("foodix_auth_user", JSON.stringify(updatedUser));
+        const nextEmail = updatedData.email
+          ? updatedData.email.trim().toLowerCase()
+          : user?.email;
 
-        // Update in registered users list
         try {
           const stored = localStorage.getItem("foodix_registered_users");
-          if (stored) {
-            const users = JSON.parse(stored);
-            const idx = users.findIndex(
-              (u) => u.id === updatedUser.id || u.email === updatedUser.email
-            );
-            if (idx !== -1) {
-              users[idx] = { ...users[idx], ...updatedUser };
-              localStorage.setItem("foodix_registered_users", JSON.stringify(users));
-            }
+          const users = stored ? JSON.parse(stored) : DEFAULT_USERS;
+          if (
+            nextEmail &&
+            users.some(
+              (u) =>
+                u.email?.toLowerCase() === nextEmail &&
+                u.id !== user?.id &&
+                u.email?.toLowerCase() !== user?.email?.toLowerCase()
+            )
+          ) {
+            reject(new Error("This email address is already registered to another account."));
+            return;
           }
+
+          const updatedUser = {
+            ...user,
+            ...updatedData,
+            email: nextEmail,
+          };
+          setUser(updatedUser);
+          localStorage.setItem("foodix_auth_user", JSON.stringify(updatedUser));
+
+          const idx = users.findIndex(
+            (u) => u.id === updatedUser.id || u.email?.toLowerCase() === user?.email?.toLowerCase()
+          );
+          if (idx !== -1) {
+            users[idx] = { ...users[idx], ...updatedUser };
+            localStorage.setItem("foodix_registered_users", JSON.stringify(users));
+          }
+
+          resolve(updatedUser);
         } catch (e) {
           console.warn("Failed to update user in registered users list", e);
+          const fallbackUser = { ...user, ...updatedData, email: nextEmail };
+          setUser(fallbackUser);
+          localStorage.setItem("foodix_auth_user", JSON.stringify(fallbackUser));
+          resolve(fallbackUser);
         }
-
-        resolve(updatedUser);
-      }, 300);
+      }, 250);
     });
   };
 
@@ -396,6 +416,9 @@ export function AuthProvider({ children }) {
     setToken(null);
     localStorage.removeItem("foodix_auth_user");
     localStorage.removeItem("foodix_token");
+    toast.info("You have been logged out successfully.", {
+      toastId: "logout_success",
+    });
   };
 
   // Quick helper to fill demo account

@@ -118,9 +118,9 @@ export default function Sidebar({ isOpen, onClose }) {
                   <Icon className="w-4 h-4 text-emerald-300/70 group-hover:text-white transition-colors" />
                   <span>{item.name}</span>
                 </div>
-                {item.hasSubmenu && (
+                {item.hasSubmenu ? (
                   <ChevronRight className="w-3.5 h-3.5 text-emerald-300/50 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
-                )}
+                ) : null}
               </Link>
             );
           })}

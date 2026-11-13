@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { LogOut, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LogoutModal({ isOpen, onClose, onConfirm }) {
@@ -26,7 +25,6 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }) {
       onConfirm();
     } else {
       logout();
-      toast.info('You have been logged out successfully.');
       navigate('/login');
     }
     onClose();

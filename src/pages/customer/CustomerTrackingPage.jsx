@@ -11,7 +11,9 @@ import {
   XCircle,
   ArrowLeft,
   Bike,
+  RefreshCw,
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import CustomerLayout from '../../components/customerPortal/CustomerLayout';
 import { useCustomerPortal } from '../../context/CustomerPortalContext';
 
@@ -27,7 +29,19 @@ const TRACKING_STEPS = [
 export default function CustomerTrackingPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { myOrders, activeOrders } = useCustomerPortal();
+  const { myOrders, activeOrders, refreshOrdersFromApi } = useCustomerPortal();
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    if (!refreshOrdersFromApi) return;
+    setRefreshing(true);
+    try {
+      await refreshOrdersFromApi();
+      toast.info('Order status synced');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const decodedId = orderId ? decodeURIComponent(orderId) : null;
 
@@ -81,21 +95,33 @@ export default function CustomerTrackingPage() {
             <span>Back to My Orders</span>
           </button>
 
-          {myOrders.length > 1 && (
-            <select
-              value={trackedOrder.id}
-              onChange={(e) =>
-                navigate(`/customer/tracking/${encodeURIComponent(e.target.value)}`)
-              }
-              className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-[#202A24] cursor-pointer"
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={refreshing}
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#FF6B35] text-xs font-bold text-[#163A2D] cursor-pointer disabled:opacity-50"
             >
-              {myOrders.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.id} — {o.restaurant} ({o.status})
-                </option>
-              ))}
-            </select>
-          )}
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Syncing...' : 'Refresh Status'}</span>
+            </button>
+
+            {myOrders.length > 1 && (
+              <select
+                value={trackedOrder.id}
+                onChange={(e) =>
+                  navigate(`/customer/tracking/${encodeURIComponent(e.target.value)}`)
+                }
+                className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-[#202A24] cursor-pointer"
+              >
+                {myOrders.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.id} — {o.restaurant} ({o.status})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
         {/* Hero Status Card */}
@@ -247,9 +273,32 @@ export default function CustomerTrackingPage() {
                   </div>
                 ))}
                 <div className="pt-2 border-t border-slate-200 flex justify-between font-black text-sm text-[#163A2D]">
-                  <span>Total Paid</span>
+                  <span>
+                    {(trackedOrder.paymentStatus || '').toLowerCase().includes('cash') ||
+                    (trackedOrder.paymentMethod || '').toLowerCase().includes('cash')
+                      ? 'To Pay on Delivery'
+                      : 'Total Paid'}
+                  </span>
                   <span>
                     ₹{(trackedOrder.grandTotal || trackedOrder.amount || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-bold uppercase text-[10px]">Payment Method</span>
+                  <span className="font-bold text-slate-800">
+                    {trackedOrder.paymentMethod || 'Online'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-bold uppercase text-[10px]">Payment Status</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      (trackedOrder.paymentStatus || '').toLowerCase().includes('cash')
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    ● {trackedOrder.paymentStatus || 'Paid'}
                   </span>
                 </div>
               </div>

@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
-import { MapPin, Plus, Edit3, Trash2, CheckCircle2, Home, Briefcase, X } from 'lucide-react';
+import {
+  MapPin,
+  Plus,
+  Edit3,
+  Trash2,
+  CheckCircle2,
+  Home,
+  Briefcase,
+  X,
+  LocateFixed,
+  Loader2,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
-import CustomerLayout from '../../components/customerPortal/CustomerLayout';
-import ConfirmDialog from '../../components/customerPortal/ConfirmDialog';
-import { useCustomerPortal } from '../../context/CustomerPortalContext';
-import { useAuth } from '../../context/AuthContext';
+import ConfirmDialog from '../ConfirmDialog';
+import { useCustomerPortal } from '../../../context/CustomerPortalContext';
+import { useAuth } from '../../../context/AuthContext';
 
-export default function CustomerAddressesPage() {
+export default function AddressesSection() {
   const { user } = useAuth();
   const {
     addresses,
@@ -14,6 +24,9 @@ export default function CustomerAddressesPage() {
     updateAddress,
     deleteAddress,
     setDefaultAddress,
+    liveLocation,
+    locationLoading,
+    detectCurrentLocation,
   } = useCustomerPortal();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,9 +39,9 @@ export default function CustomerAddressesPage() {
     phone: user?.phone || '',
     street: '',
     landmark: '',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560038',
+    city: '',
+    state: '',
+    pincode: '',
     isDefault: true,
   });
 
@@ -37,12 +50,17 @@ export default function CustomerAddressesPage() {
     setForm({
       label: 'Home',
       fullName: user?.name || '',
-      phone: user?.phone || '+91 98765 01234',
-      street: '',
-      landmark: '',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560038',
+      phone: user?.phone || '',
+      street: liveLocation?.area || '',
+      landmark:
+        liveLocation?.locality && liveLocation?.locality !== liveLocation?.area
+          ? liveLocation.locality
+          : '',
+      city: liveLocation?.city || '',
+      state: liveLocation?.state || '',
+      pincode: liveLocation?.pincode || '',
+      lat: liveLocation?.lat ?? null,
+      lng: liveLocation?.lng ?? null,
       isDefault: addresses.length === 0,
     });
     setModalOpen(true);
@@ -52,6 +70,25 @@ export default function CustomerAddressesPage() {
     setEditingAddr(addr);
     setForm({ ...addr });
     setModalOpen(true);
+  };
+
+  const handleAutofillCurrentLocation = async () => {
+    const detected = await detectCurrentLocation({ saveAsAddress: false });
+    if (detected) {
+      setForm((prev) => ({
+        ...prev,
+        street: detected.area || detected.locality || prev.street,
+        landmark:
+          detected.locality && detected.locality !== detected.area
+            ? detected.locality
+            : prev.landmark,
+        city: detected.city || prev.city,
+        state: detected.state || prev.state,
+        pincode: detected.pincode || prev.pincode,
+        lat: detected.lat ?? null,
+        lng: detected.lng ?? null,
+      }));
+    }
   };
 
   const handleSubmit = (e) => {
@@ -70,128 +107,125 @@ export default function CustomerAddressesPage() {
   };
 
   return (
-    <CustomerLayout>
-      <div className="space-y-5">
-        <div className="rounded-3xl bg-gradient-to-r from-[#FFF8F0] via-[#fffbf6] to-[#E7EFE8] border border-orange-100/80 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#163A2D] text-white flex items-center justify-center shrink-0">
-              <MapPin className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#202A24]">
-                Saved Addresses
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                Manage your Home, Work, and doorstep delivery locations
-              </p>
-            </div>
+    <div className="space-y-5">
+      <div className="rounded-3xl bg-gradient-to-r from-[#FFF8F0] via-[#fffbf6] to-[#E7EFE8] border border-orange-100/80 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#163A2D] text-white flex items-center justify-center shrink-0">
+            <MapPin className="w-6 h-6" />
           </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-[#202A24]">My Addresses</h2>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium">
+              Manage Home, Work, and Other doorstep delivery locations
+            </p>
+          </div>
+        </div>
 
+        <button
+          type="button"
+          onClick={openAdd}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#FF6B35] hover:bg-[#e85a25] text-white font-bold text-xs shadow-md cursor-pointer self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add New Address</span>
+        </button>
+      </div>
+
+      {addresses.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center space-y-3">
+          <MapPin className="w-12 h-12 mx-auto text-slate-300" />
+          <h3 className="font-black text-base text-[#202A24]">No Saved Addresses</h3>
+          <p className="text-xs text-slate-500">
+            Add a delivery address or auto-fill using your current GPS location.
+          </p>
           <button
             type="button"
             onClick={openAdd}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#FF6B35] hover:bg-[#e85a25] text-white font-bold text-xs shadow-md cursor-pointer self-start sm:self-auto"
+            className="px-5 py-2.5 rounded-full bg-[#163A2D] text-white font-bold text-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>Add New Address</span>
+            Add Delivery Address
           </button>
         </div>
-
-        {addresses.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center space-y-3">
-            <MapPin className="w-12 h-12 mx-auto text-slate-300" />
-            <h3 className="font-black text-base text-[#202A24]">No Saved Addresses</h3>
-            <p className="text-xs text-slate-500">
-              Add a delivery address so checkout is instant next time you order.
-            </p>
-            <button
-              type="button"
-              onClick={openAdd}
-              className="px-5 py-2.5 rounded-full bg-[#163A2D] text-white font-bold text-xs cursor-pointer"
-            >
-              Add Delivery Address
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {addresses.map((addr) => {
-              const Icon = addr.label === 'Work' ? Briefcase : Home;
-              return (
-                <div
-                  key={addr.id}
-                  className={`bg-white rounded-3xl border p-5 shadow-2xs flex flex-col justify-between space-y-4 ${
-                    addr.isDefault
-                      ? 'border-[#163A2D] ring-2 ring-[#163A2D]/10'
-                      : 'border-slate-200/80'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E7EFE8] text-[#163A2D] text-xs font-black">
-                        <Icon className="w-3.5 h-3.5" />
-                        {addr.label}
-                      </span>
-                      {addr.isDefault && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] text-[10px] font-black">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Default
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="pt-1 text-xs space-y-1">
-                      <p className="font-black text-sm text-[#202A24]">{addr.fullName}</p>
-                      <p className="text-slate-600 font-medium">{addr.street}</p>
-                      {addr.landmark && (
-                        <p className="text-slate-400 text-[11px]">Landmark: {addr.landmark}</p>
-                      )}
-                      <p className="text-slate-600 font-semibold">
-                        {addr.city}, {addr.state} - {addr.pincode}
-                      </p>
-                      <p className="text-slate-500 pt-1">Phone: {addr.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    {!addr.isDefault ? (
-                      <button
-                        type="button"
-                        onClick={() => setDefaultAddress(addr.id)}
-                        className="text-xs font-bold text-[#163A2D] hover:text-[#FF6B35] cursor-pointer"
-                      >
-                        Set as Default
-                      </button>
-                    ) : (
-                      <span className="text-[11px] font-bold text-emerald-700">
-                        Active Delivery Location
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {addresses.map((addr) => {
+            const Icon = addr.label === 'Work' ? Briefcase : addr.label === 'Other' ? MapPin : Home;
+            return (
+              <div
+                key={addr.id}
+                className={`bg-white rounded-3xl border p-5 shadow-2xs flex flex-col justify-between space-y-4 ${
+                  addr.isDefault
+                    ? 'border-[#163A2D] ring-2 ring-[#163A2D]/10'
+                    : 'border-slate-200/80'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E7EFE8] text-[#163A2D] text-xs font-black">
+                      <Icon className="w-3.5 h-3.5" />
+                      {addr.label}
+                    </span>
+                    {addr.isDefault && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] text-[10px] font-black">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Default
                       </span>
                     )}
+                  </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(addr)}
-                        className="p-2 rounded-xl bg-[#FFF8F0] text-[#FF6B35] hover:bg-orange-100 cursor-pointer"
-                        title="Edit Address"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(addr)}
-                        className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer"
-                        title="Delete Address"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                  <div className="pt-1 text-xs space-y-1">
+                    <p className="font-black text-sm text-[#202A24]">{addr.fullName}</p>
+                    <p className="text-slate-600 font-medium">{addr.street}</p>
+                    {addr.landmark && (
+                      <p className="text-slate-400 text-[11px]">Landmark: {addr.landmark}</p>
+                    )}
+                    <p className="text-slate-600 font-semibold">
+                      {[addr.city, addr.state].filter(Boolean).join(', ')}
+                      {addr.pincode ? ` - ${addr.pincode}` : ''}
+                    </p>
+                    {addr.phone && <p className="text-slate-500 pt-1">Phone: {addr.phone}</p>}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  {!addr.isDefault ? (
+                    <button
+                      type="button"
+                      onClick={() => setDefaultAddress(addr.id)}
+                      className="text-xs font-bold text-[#163A2D] hover:text-[#FF6B35] cursor-pointer"
+                    >
+                      Set as Default
+                    </button>
+                  ) : (
+                    <span className="text-[11px] font-bold text-emerald-700">
+                      Active Delivery Location
+                    </span>
+                  )}
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(addr)}
+                      className="p-2 rounded-xl bg-[#FFF8F0] text-[#FF6B35] hover:bg-orange-100 cursor-pointer"
+                      title="Edit Address"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(addr)}
+                      className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer"
+                      title="Delete Address"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Add / Edit Address Modal */}
       {modalOpen && (
@@ -217,6 +251,24 @@ export default function CustomerAddressesPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+              <button
+                type="button"
+                disabled={locationLoading}
+                onClick={handleAutofillCurrentLocation}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#FFF8F0] hover:bg-orange-100/70 border border-orange-200 text-[#FF6B35] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {locationLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LocateFixed className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {locationLoading
+                    ? 'Detecting Current GPS Location...'
+                    : 'Auto-Fill Using Current GPS Location'}
+                </span>
+              </button>
+
               <div className="grid grid-cols-3 gap-2">
                 {['Home', 'Work', 'Other'].map((lbl) => (
                   <button
@@ -354,6 +406,6 @@ export default function CustomerAddressesPage() {
         }}
         onCancel={() => setDeleteTarget(null)}
       />
-    </CustomerLayout>
+    </div>
   );
 }

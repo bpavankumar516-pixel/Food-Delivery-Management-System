@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Settings,
   User,
@@ -7,6 +8,7 @@ import {
   Truck,
   Sliders,
   Lock,
+  Headphones,
   Eye,
   EyeOff,
   Save,
@@ -18,11 +20,25 @@ import {
 import { toast } from 'react-toastify';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
+import AdminSupportAlertsPanel from '../components/support/AdminSupportAlertsPanel';
+import { getInitials } from '../components/common/UserAvatar';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import { useNotificationSupport } from '../context/NotificationSupportContext';
+
+const ADMIN_SETTINGS_TABS = new Set([
+  'profile',
+  'business',
+  'tax',
+  'delivery',
+  'app',
+  'security',
+  'support',
+]);
 
 export default function SettingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, updateProfile, changePassword } = useAuth();
   const {
     settings,
@@ -31,8 +47,28 @@ export default function SettingsPage() {
     updateDeliverySettings,
     updateAppSettings,
   } = useSettings();
+  const { unreadCount = 0, tickets = [] } = useNotificationSupport?.() || {};
+  const openTicketsCount = tickets.filter(
+    (t) => t.status === 'Open' || t.status === 'In Progress'
+  ).length;
+  const supportAlertCount = unreadCount + openTicketsCount;
 
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'business' | 'tax' | 'delivery' | 'app' | 'security'
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    initialTab && ADMIN_SETTINGS_TABS.has(initialTab) ? initialTab : 'profile'
+  );
+
+  useEffect(() => {
+    const paramTab = searchParams.get('tab');
+    if (paramTab && ADMIN_SETTINGS_TABS.has(paramTab) && paramTab !== activeTab) {
+      setActiveTab(paramTab);
+    }
+  }, [searchParams, activeTab]);
+
+  const handleSelectTab = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId }, { replace: true });
+  };
 
   // Admin Profile Form State
   const [profileForm, setProfileForm] = useState({
@@ -68,10 +104,22 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (updateProfile) {
-      await updateProfile(profileForm);
+    if (!profileForm.name.trim()) {
+      toast.error('Admin name is required.');
+      return;
     }
-    toast.success('Admin profile saved successfully!');
+    if (!profileForm.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email.trim())) {
+      toast.error('Please enter a valid admin email.');
+      return;
+    }
+    try {
+      if (updateProfile) {
+        await updateProfile(profileForm);
+      }
+      toast.success('Admin profile saved successfully!');
+    } catch (err) {
+      toast.error(err?.message || 'Failed to save profile');
+    }
   };
 
   const handleSaveBusiness = (e) => {
@@ -137,7 +185,7 @@ export default function SettingsPage() {
               {/* White boxed avatar with initials matching Image 1 */}
               <div className="relative shrink-0">
                 <div className="w-22 h-22 rounded-2xl bg-[#ff5722] text-white flex items-center justify-center font-black text-2xl shadow-xl ring-4 ring-white/20">
-                  <span>PK</span>
+                  <span>{getInitials(profileForm.name || 'Admin')}</span>
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
                   <div className="w-4 h-4 rounded-full bg-emerald-500" />
@@ -186,6 +234,7 @@ export default function SettingsPage() {
               { id: 'tax', label: 'GST & Taxes', icon: Receipt },
               { id: 'delivery', label: 'Delivery Parameters', icon: Truck },
               { id: 'app', label: 'Application Preferences', icon: Sliders },
+              { id: 'support', label: 'Support & Alerts', icon: Headphones, badge: supportAlertCount },
               { id: 'security', label: 'Security & Password', icon: Lock },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -194,7 +243,7 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleSelectTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     isActive
                       ? 'bg-[#064e3b] text-white shadow-xs'
@@ -203,6 +252,15 @@ export default function SettingsPage() {
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
+                  {tab.badge > 0 && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black leading-none ${
+                        isActive ? 'bg-[#ff5722] text-white' : 'bg-[#ff5722] text-white'
+                      }`}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -590,7 +648,10 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* TAB 6: SECURITY & PASSWORD */}
+          {/* TAB 6: SUPPORT & ALERTS */}
+          {activeTab === 'support' && <AdminSupportAlertsPanel showSummaryStrip />}
+
+          {/* TAB 7: SECURITY & PASSWORD */}
           {activeTab === 'security' && (
             <div className="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-2xs">
               <form onSubmit={handleSavePassword} className="space-y-4 max-w-md text-xs">

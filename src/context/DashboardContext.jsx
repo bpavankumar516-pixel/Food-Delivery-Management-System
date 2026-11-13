@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useRestaurants } from './RestaurantContext';
 import { OrderContext } from './OrderContext';
 import { CustomerContext } from './CustomerContext';
+import { CouponContext } from './CouponContext';
 import dashboardService from '../services/dashboardService';
 
 export const DashboardContext = createContext(null);
@@ -98,52 +99,32 @@ const INITIAL_ORDERS = [
   },
 ];
 
-const REVENUE_DATASETS = {
-  'Last 7 Days': {
-    total: '₹78,450',
-    numericTotal: 78450,
-    growth: '+16%',
-    vsPeriod: 'vs previous week',
-    points: [
-      { label: 'Mon', value: 20000, display: '₹20k' },
-      { label: 'Tue', value: 42000, display: '₹42k' },
-      { label: 'Wed', value: 48000, display: '₹48k' },
-      { label: 'Thu', value: 46000, display: '₹46k' },
-      { label: 'Fri', value: 60000, display: '₹60k' },
-      { label: 'Sat', value: 54000, display: '₹54k' },
-      { label: 'Sun', value: 78450, display: '₹78.4k', highlight: true },
-    ],
-  },
-  'Last 30 Days': {
-    total: '₹3,42,800',
-    numericTotal: 342800,
-    growth: '+24%',
-    vsPeriod: 'vs previous month',
-    points: [
-      { label: 'Week 1', value: 65000, display: '₹65k' },
-      { label: 'Week 2', value: 82000, display: '₹82k' },
-      { label: 'Week 3', value: 94000, display: '₹94k' },
-      { label: 'Week 4', value: 101800, display: '₹101k', highlight: true },
-    ],
-  },
-  'This Month': {
-    total: '₹1,95,600',
-    numericTotal: 195600,
-    growth: '+19%',
-    vsPeriod: 'target on track',
-    points: [
-      { label: 'Day 1-7', value: 45000, display: '₹45k' },
-      { label: 'Day 8-14', value: 58000, display: '₹58k' },
-      { label: 'Day 15-21', value: 62000, display: '₹62k' },
-      { label: 'Day 22-28', value: 30600, display: '₹30k', highlight: true },
-    ],
-  },
+const formatINR = (val) => `₹${Math.round(val).toLocaleString('en-IN')}`;
+const formatShortINR = (val) => {
+  const num = Number(val) || 0;
+  if (num >= 100000) return `₹${(num / 1000).toFixed(0)}k`;
+  if (num >= 1000) return `₹${(num / 1000).toFixed(num % 1000 >= 100 ? 1 : 0)}k`;
+  return `₹${Math.round(num)}`;
+};
+
+const getOrderDaysAgo = (order, idx) => {
+  if (order.createdAt) {
+    const parsed = Date.parse(order.createdAt);
+    if (!Number.isNaN(parsed)) {
+      return Math.max(0, Math.floor((Date.now() - parsed) / 86400000));
+    }
+  }
+  const timeText = String(order.placedAt || order.orderTime || '').toLowerCase();
+  if (timeText.includes('just now') || timeText.includes('today')) return 0;
+  if (timeText.includes('yesterday')) return 1;
+  return (idx % 6) + 1;
 };
 
 export function DashboardProvider({ children }) {
-  const { stats: restStats, addRestaurant, activities, addActivity, allMenuItems } = useRestaurants();
+  const { stats: restStats, addRestaurant, activities, addActivity, allMenuItems, restaurants } = useRestaurants();
   const orderCtx = useContext(OrderContext) || {};
   const customerCtx = useContext(CustomerContext) || {};
+  const couponCtx = useContext(CouponContext) || {};
 
   const liveOrders = orderCtx.orders && orderCtx.orders.length > 0 ? orderCtx.orders : INITIAL_ORDERS;
 
@@ -179,28 +160,134 @@ export function DashboardProvider({ children }) {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isAllActivitiesOpen, setIsAllActivitiesOpen] = useState(false);
 
-  const [extraFoodItems, setExtraFoodItems] = useState(0);
-
   // Dashboard Stats dynamically synchronized with RestaurantContext, OrderContext & CustomerContext
   const stats = useMemo(() => {
     const orderStats = orderCtx.stats || {};
     const custStats = customerCtx.stats || {};
+    const eligibleOrders = orders.filter((o) => !['Cancelled', 'Rejected'].includes(o.status));
+    const eligibleRevenue =
+      orderStats.eligibleRevenue ??
+      eligibleOrders.reduce((sum, o) => sum + (Number(o.grandTotal || o.amount) || 0), 0);
+    const averageOrderValue =
+      eligibleOrders.length > 0 ? Math.round(eligibleRevenue / eligibleOrders.length) : 0;
+    const avgRestaurantRating =
+      restaurants && restaurants.length > 0
+        ? (
+            restaurants.reduce((s, r) => s + (parseFloat(r.rating) || 4.4), 0) / restaurants.length
+          ).toFixed(1)
+        : '4.5';
+
+    const openRests = restStats?.openRestaurants ?? restaurants.filter((r) => r.status === 'Open').length;
+    const inStockItems = (allMenuItems || []).filter((m) => m.inStock !== false).length;
+    const pendingOrders = orders.filter((o) => o.status === 'Pending').length;
+    const activeCustomers =
+      custStats.activeCustomers ??
+      (customerCtx.customers || []).filter((c) => c.status !== 'Blocked').length;
 
     return {
-      totalRestaurants: restStats?.totalRestaurants || 24,
-      totalRestaurantsChange: restStats?.totalChange || '+12%',
-      totalFoodItems: (allMenuItems?.length || 24) + extraFoodItems,
-      totalFoodItemsChange: '+12%',
+      totalRestaurants: restStats?.totalRestaurants ?? restaurants.length,
+      totalRestaurantsChange: `${openRests} Open`,
+      totalFoodItems: (allMenuItems || []).length,
+      totalFoodItemsChange: `${inStockItems} In stock`,
       totalOrders: orderStats.total ?? orders.length,
-      totalOrdersChange: '+15%',
-      activeOrders: orderStats.active ?? orders.filter((o) => !['Delivered', 'Cancelled', 'Rejected'].includes(o.status)).length,
-      activeOrdersChange: '+10%',
+      totalOrdersChange: `${eligibleOrders.length} valid`,
+      activeOrders:
+        orderStats.active ??
+        orders.filter((o) => !['Delivered', 'Cancelled', 'Rejected'].includes(o.status)).length,
+      activeOrdersChange: `${pendingOrders} pending`,
       deliveredOrders: orderStats.delivered ?? orders.filter((o) => o.status === 'Delivered').length,
-      deliveredOrdersChange: '+18%',
-      totalCustomers: custStats.totalCustomers ?? 30,
-      totalCustomersChange: '+14%',
+      deliveredOrdersChange: `${orders.length > 0 ? Math.round(((orderStats.delivered ?? 0) / orders.length) * 100) : 0}% rate`,
+      totalCustomers: custStats.totalCustomers ?? 0,
+      totalCustomersChange: `${activeCustomers} Active`,
+      eligibleRevenue,
+      averageOrderValue,
+      avgRestaurantRating,
     };
-  }, [restStats, allMenuItems, extraFoodItems, orderCtx.stats, customerCtx.stats, orders]);
+  }, [restStats, allMenuItems, orderCtx.stats, customerCtx.stats, customerCtx.customers, orders, restaurants]);
+
+  // Dynamic Revenue Datasets derived directly from live orders
+  const revenueDatasets = useMemo(() => {
+    const eligible = orders.filter((o) => !['Cancelled', 'Rejected'].includes(o.status));
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const now = new Date();
+
+    // 1. Last 7 Days (rolling 7 days ending Today)
+    const last7Buckets = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - (6 - i));
+      return {
+        label: i === 6 ? 'Today' : dayNames[d.getDay()],
+        value: 0,
+        highlight: i === 6,
+      };
+    });
+
+    // 2. Last 30 Days (4 weeks)
+    const last30Buckets = [
+      { label: 'Week 1', value: 0 },
+      { label: 'Week 2', value: 0 },
+      { label: 'Week 3', value: 0 },
+      { label: 'Week 4', value: 0, highlight: true },
+    ];
+
+    // 3. This Month (4 brackets)
+    const monthBuckets = [
+      { label: 'Day 1-7', value: 0 },
+      { label: 'Day 8-14', value: 0 },
+      { label: 'Day 15-21', value: 0 },
+      { label: 'Day 22-31', value: 0, highlight: true },
+    ];
+
+    eligible.forEach((order, idx) => {
+      const amt = Number(order.grandTotal || order.amount) || 0;
+      const daysAgo = getOrderDaysAgo(order, idx);
+
+      if (daysAgo <= 6) {
+        last7Buckets[6 - daysAgo].value += amt;
+      }
+
+      if (daysAgo <= 29) {
+        const weekIdx = Math.max(0, Math.min(3, 3 - Math.floor(daysAgo / 7)));
+        last30Buckets[weekIdx].value += amt;
+      }
+
+      const orderDate = order.createdAt && !Number.isNaN(Date.parse(order.createdAt))
+        ? new Date(order.createdAt)
+        : new Date(now.getTime() - daysAgo * 86400000);
+      const dayOfMonth = orderDate.getDate();
+      const bracketIdx = dayOfMonth <= 7 ? 0 : dayOfMonth <= 14 ? 1 : dayOfMonth <= 21 ? 2 : 3;
+      monthBuckets[bracketIdx].value += amt;
+    });
+
+    const finalize = (pts, vsPeriod) => {
+      const numericTotal = pts.reduce((sum, p) => sum + p.value, 0);
+      const firstHalf = pts.slice(0, Math.floor(pts.length / 2)).reduce((s, p) => s + p.value, 0);
+      const secondHalf = pts.slice(Math.floor(pts.length / 2)).reduce((s, p) => s + p.value, 0);
+      const deltaPct =
+        firstHalf > 0
+          ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100)
+          : secondHalf > 0
+          ? 100
+          : 0;
+      const growth = `${deltaPct >= 0 ? '+' : ''}${deltaPct}%`;
+      return {
+        total: formatINR(numericTotal),
+        numericTotal,
+        growth,
+        vsPeriod,
+        points: pts.map((p) => ({
+          ...p,
+          display: formatShortINR(p.value),
+        })),
+      };
+    };
+
+    return {
+      'Last 7 Days': finalize(last7Buckets, `${eligible.length} active/completed orders`),
+      'Last 30 Days': finalize(last30Buckets, 'live 30-day trend'),
+      'This Month': finalize(monthBuckets, 'current month breakdown'),
+    };
+  }, [orders]);
 
   // Initial dashboard network fetch for browser Network tab visibility
   useEffect(() => {
@@ -250,32 +337,42 @@ export function DashboardProvider({ children }) {
     setIsAddRestaurantOpen(false);
   };
 
-  // Add Menu Item Handler
-  const handleAddMenuItem = (newItem) => {
-    setExtraFoodItems((c) => c + 1);
-    addActivity({
-      type: 'menu',
-      action: 'item_add',
-      title: 'New menu item introduced',
-      subtitle: `${newItem.name} (₹${newItem.price})`,
-      color: 'orange',
-      badge: 'Menu Item',
-    });
-    toast.success(`Menu item "${newItem.name}" (₹${newItem.price}) added!`);
+  // Add Menu Item Modal state closure (item itself is persisted via RestaurantContext.addMenuItem)
+  const handleAddMenuItem = () => {
     setIsAddMenuItemOpen(false);
   };
 
-  // Apply Coupon Handler
+  // Apply Coupon Handler — persists into shared CouponContext for Admin & Customer Portal
   const handleApplyCoupon = (coupon) => {
+    const cleanCode = String(coupon.code || '').trim().toUpperCase();
+    if (couponCtx.addCoupon && cleanCode) {
+      couponCtx.addCoupon({
+        code: cleanCode,
+        title: `${coupon.discount}% OFF Platform Promo`,
+        description: `Save ${coupon.discount}% on orders above ₹${coupon.minOrder || 0}.`,
+        discountType: 'percentage',
+        discountValue: Number(coupon.discount) || 10,
+        offerTag: `${coupon.discount}% OFF`,
+        minOrderAmount: Number(coupon.minOrder) || 0,
+        maxDiscount: 200,
+        expiryDate: 'Dec 31, 2026',
+        dateLabel: 'Valid till: Dec 31, 2026',
+        category: 'General',
+        status: 'Active',
+        bannerImage:
+          'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600',
+      });
+    } else {
+      toast.success(`Coupon code "${cleanCode}" activated (${coupon.discount}% OFF)!`);
+    }
     addActivity({
       type: 'coupon',
       action: 'coupon',
       title: 'Promotional offer published',
-      subtitle: `${coupon.code} • ${coupon.discount}% OFF`,
+      subtitle: `${cleanCode} • ${coupon.discount}% OFF (Min ₹${coupon.minOrder || 0})`,
       color: 'blue',
       badge: 'Coupon',
     });
-    toast.success(`Coupon code "${coupon.code}" activated (${coupon.discount}% OFF)!`);
     setIsApplyCouponOpen(false);
   };
 
@@ -309,7 +406,7 @@ export function DashboardProvider({ children }) {
         allOrders: orders,
         stats,
         activities,
-        revenueData: REVENUE_DATASETS[revenueTimeframe] || REVENUE_DATASETS['Last 7 Days'],
+        revenueData: revenueDatasets[revenueTimeframe] || revenueDatasets['Last 7 Days'],
         revenueTimeframe,
         setRevenueTimeframe,
         orderDistribution,

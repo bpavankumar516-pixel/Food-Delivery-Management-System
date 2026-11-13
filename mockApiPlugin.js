@@ -503,6 +503,49 @@ export function mockApiPlugin() {
               });
             }
 
+            // 23. GEOCODE: GET /api/geocode/reverse?lat=...&lon=...
+            if (subPath === '/geocode/reverse' && req.method === 'GET') {
+              const lat = parsedUrl.query?.lat;
+              const lon = parsedUrl.query?.lon;
+              if (!lat || !lon) {
+                return sendJson(400, { error: 'Latitude and longitude are required' });
+              }
+              try {
+                const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&addressdetails=1`;
+                const nomRes = await fetch(nomUrl, {
+                  headers: { 'User-Agent': 'FoodixDeliveryApp/1.0' },
+                });
+                if (!nomRes.ok) {
+                  return sendJson(502, { error: 'Reverse geocoding provider unavailable' });
+                }
+                const data = await nomRes.json();
+                return sendJson(200, { status: 'success', data });
+              } catch (geoErr) {
+                return sendJson(502, { error: geoErr.message || 'Reverse geocoding failed' });
+              }
+            }
+
+            // 24. GEOCODE: GET /api/geocode/search?q=...
+            if (subPath === '/geocode/search' && req.method === 'GET') {
+              const q = parsedUrl.query?.q || '';
+              if (!q.trim()) {
+                return sendJson(200, { status: 'success', data: [] });
+              }
+              try {
+                const nomUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&addressdetails=1&limit=6`;
+                const nomRes = await fetch(nomUrl, {
+                  headers: { 'User-Agent': 'FoodixDeliveryApp/1.0' },
+                });
+                if (!nomRes.ok) {
+                  return sendJson(502, { error: 'Address search provider unavailable' });
+                }
+                const data = await nomRes.json();
+                return sendJson(200, { status: 'success', data: Array.isArray(data) ? data : [] });
+              } catch (geoErr) {
+                return sendJson(502, { error: geoErr.message || 'Address search failed' });
+              }
+            }
+
             // Fallback for any other /api/* path
             return sendJson(200, {
               status: 'success',

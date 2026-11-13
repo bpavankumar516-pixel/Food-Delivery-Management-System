@@ -27,6 +27,9 @@ export default function RestaurantsPage() {
     itemsPerPage,
     viewMode,
     setIsAddModalOpen,
+    setSearchQuery,
+    setSelectedCuisine,
+    setSelectedRating,
   } = useRestaurants();
 
   // Calculate showing range e.g. "Showing 1 - 8 of 24 restaurants"
@@ -106,6 +109,17 @@ export default function RestaurantsPage() {
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
                     Try adjusting your search query, selecting different cuisine categories, or clearing filters.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCuisine('All Cuisines');
+                      setSelectedRating('All Ratings');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#ff5e28] hover:bg-[#ff4e12] text-white font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Clear All Filters
+                  </button>
                 </div>
               )}
 
