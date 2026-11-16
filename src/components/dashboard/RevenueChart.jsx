@@ -111,8 +111,8 @@ export default function RevenueChart() {
             <Tooltip
               formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Revenue']}
               contentStyle={{
-                backgroundColor: '#05291e',
-                borderColor: '#064e3b',
+                backgroundColor: '#163A2D',
+                borderColor: '#102e23',
                 borderRadius: '12px',
                 color: '#fff',
                 fontSize: '12px',
@@ -124,11 +124,11 @@ export default function RevenueChart() {
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#059669"
+              stroke="#10b981"
               strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#foodixRevenueFill)"
-              activeDot={{ r: 5, fill: '#ff5722', stroke: '#fff', strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: '#FF6B35', stroke: '#fff', strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>

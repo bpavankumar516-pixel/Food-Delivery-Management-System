@@ -3,16 +3,33 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-script: 'Caveat', cursive;
-  --color-primary: #ff6422;
-  --color-primary-dark: #e85312;
-  --color-primary-light: #fff5ee;
-  --color-forest: #0b3b2c;
-  --color-forest-dark: #07291f;
-  --color-forest-deep: #051d16;
+
+  /* Foodix Premium Palette */
+  --color-foodix-green: #163A2D;
+  --color-foodix-green-dark: #0f271e;
+  --color-foodix-green-deep: #081712;
+  --color-foodix-orange: #FF6B35;
+  --color-foodix-orange-dark: #e85925;
+  --color-foodix-orange-light: #fff3ec;
+  --color-foodix-cream: #FFF8F0;
+  --color-foodix-sage: #E7EFE8;
+  --color-foodix-dark: #202A24;
+
+  /* Aliases for backwards compatibility */
+  --color-primary: #FF6B35;
+  --color-primary-dark: #e85925;
+  --color-primary-light: #FFF8F0;
+  --color-forest: #163A2D;
+  --color-forest-dark: #0f271e;
+  --color-forest-deep: #081712;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -20,8 +37,9 @@ body {
   padding: 0;
   font-family: var(--font-sans);
   background-color: #f8fafc;
-  color: #1e293b;
+  color: #202A24;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -31,24 +49,56 @@ body {
   flex-direction: column;
 }
 
+/* Custom scrollbar for sleek dashboard & sidebars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.22);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.4);
+}
+
+/* Shimmer animation for loading skeletons */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(241, 245, 249, 0.8) 25%, rgba(226, 232, 240, 0.9) 50%, rgba(241, 245, 249, 0.8) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
 /* Custom smooth transitions & animations */
 @keyframes floatSlow {
   0%, 100% {
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-6px);
   }
 }
 
 @keyframes pulseGlow {
   0%, 100% {
     opacity: 0.9;
-    box-shadow: 0 0 15px rgba(255, 100, 34, 0.25);
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.22);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 25px rgba(255, 100, 34, 0.45);
+    box-shadow: 0 0 25px rgba(255, 107, 53, 0.42);
   }
 }
 

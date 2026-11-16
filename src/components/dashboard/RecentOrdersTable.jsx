@@ -51,7 +51,7 @@ export default function RecentOrdersTable() {
         <button
           type="button"
           onClick={() => navigate('/orders')}
-          className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors cursor-pointer group"
+          className="text-xs font-semibold text-[#163A2D] hover:text-[#0f2920] flex items-center gap-1 transition-colors cursor-pointer group"
         >
           <span>View All Orders</span>
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -131,7 +131,7 @@ export default function RecentOrdersTable() {
                         e.stopPropagation();
                         setSelectedOrder(order);
                       }}
-                      className="px-3 py-1 rounded-md border border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
+                      className="px-3 py-1 rounded-md border border-[#163A2D]/40 text-[#163A2D] hover:bg-[#E7EFE8] text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
                     >
                       View
                     </button>

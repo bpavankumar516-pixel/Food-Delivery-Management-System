@@ -351,7 +351,7 @@ export default function CouponsPage() {
               {/* Left Column: Coupon Icon & Titles */}
               <div className="flex items-center gap-4">
                 {/* Green Ticket Badge Icon */}
-                <div className="w-13 h-13 rounded-2xl bg-[#097956] text-white flex items-center justify-center shadow-lg shadow-emerald-800/20 shrink-0 transform -rotate-3">
+                <div className="w-13 h-13 rounded-2xl bg-[#163A2D] text-white flex items-center justify-center shadow-lg shadow-emerald-950/20 shrink-0 transform -rotate-3">
                   <div className="border border-dashed border-white/60 p-2 rounded-xl flex items-center justify-center">
                     <Percent className="w-6 h-6 stroke-[2.5]" />
                   </div>
@@ -389,10 +389,10 @@ export default function CouponsPage() {
 
                 {/* Right Calligraphy Script Text */}
                 <div className="text-right">
-                  <h2 className="font-serif italic text-2xl sm:text-3xl lg:text-4xl font-bold text-[#083c2e] tracking-tight leading-none drop-shadow-xs">
+                  <h2 className="font-serif italic text-2xl sm:text-3xl lg:text-4xl font-bold text-[#163A2D] tracking-tight leading-none drop-shadow-xs">
                     Special Offers
                   </h2>
-                  <p className="font-serif italic text-xs sm:text-sm text-[#083c2e]/80 font-semibold mt-1">
+                  <p className="font-serif italic text-xs sm:text-sm text-[#163A2D]/80 font-semibold mt-1">
                     More Savings, More Happiness!
                   </p>
                 </div>

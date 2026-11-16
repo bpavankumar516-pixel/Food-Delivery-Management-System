@@ -232,7 +232,7 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10 text-center sm:text-left">
               {/* White boxed avatar with initials matching Image 1 */}
               <div className="relative shrink-0">
-                <div className="w-22 h-22 rounded-2xl bg-[#ff5722] text-white flex items-center justify-center font-black text-2xl shadow-xl ring-4 ring-white/20">
+                <div className="w-22 h-22 rounded-2xl bg-[#FF6B35] text-white flex items-center justify-center font-black text-2xl shadow-xl ring-4 ring-white/20">
                   <span>{initials}</span>
                 </div>
 
@@ -315,7 +315,7 @@ export default function ProfilePage() {
                     onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center gap-2 py-3.5 px-4 font-bold text-xs whitespace-nowrap border-b-2 transition-all cursor-pointer ${
                       isActive
-                        ? 'border-[#ff5722] text-[#ff5722]'
+                        ? 'border-[#FF6B35] text-[#FF6B35]'
                         : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
                     }`}
                   >
@@ -354,7 +354,7 @@ export default function ProfilePage() {
                       onClick={() => setProfileForm((prev) => ({ ...prev, useCustomAvatar: false }))}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                         !profileForm.useCustomAvatar
-                          ? 'bg-[#ff5722] text-white shadow-xs'
+                          ? 'bg-[#FF6B35] text-white shadow-xs'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -365,7 +365,7 @@ export default function ProfilePage() {
                       onClick={() => setProfileForm((prev) => ({ ...prev, useCustomAvatar: true }))}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                         profileForm.useCustomAvatar
-                          ? 'bg-[#ff5722] text-white shadow-xs'
+                          ? 'bg-[#FF6B35] text-white shadow-xs'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -380,7 +380,7 @@ export default function ProfilePage() {
                     <p className="text-xs font-bold text-slate-700">Choose Avatar Gradient Style:</p>
                     <div className="flex flex-wrap items-center gap-3">
                       {[
-                        { id: 'orange', label: 'Foodix Orange', bg: 'bg-[#ff5722]' },
+                        { id: 'orange', label: 'Foodix Orange', bg: 'bg-[#FF6B35]' },
                         { id: 'emerald', label: 'Emerald Green', bg: 'bg-[#059669]' },
                         { id: 'indigo', label: 'Royal Indigo', bg: 'bg-[#4338ca]' },
                         { id: 'rose', label: 'Rose Pink', bg: 'bg-[#e11d48]' },
@@ -547,7 +547,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={isSavingProfile}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#ff5722] to-[#ff7539] hover:from-[#f44e19] hover:to-[#ff5722] text-white font-bold text-sm shadow-md shadow-orange-500/25 transition-transform active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#FF6B35] hover:bg-[#ea5d28] text-white font-bold text-sm shadow-md shadow-orange-500/25 transition-transform active:scale-[0.98] cursor-pointer disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
                     <span>{isSavingProfile ? 'Saving Changes...' : 'Save Profile Changes'}</span>
@@ -656,7 +656,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={isChangingPassword}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs sm:text-sm shadow-md transition-transform active:scale-[0.98] cursor-pointer"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#163A2D] hover:bg-[#102c22] text-white font-bold text-xs sm:text-sm shadow-md transition-transform active:scale-[0.98] cursor-pointer"
                   >
                     <KeyRound className="w-4 h-4" />
                     <span>{isChangingPassword ? 'Updating Password...' : 'Update Password'}</span>

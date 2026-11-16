@@ -52,7 +52,7 @@ export default function RestaurantsPage() {
           {/* Top Title Bar matching reference image */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#ff5e28] text-white flex items-center justify-center shadow-md shadow-orange-600/20 shrink-0">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#FF6B35] text-white flex items-center justify-center shadow-md shadow-orange-600/20 shrink-0">
                 <Store className="w-6 h-6" />
               </div>
               <div>
@@ -69,7 +69,7 @@ export default function RestaurantsPage() {
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-2xl bg-[#ff5e28] hover:bg-[#ff4e12] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-2xl bg-[#FF6B35] hover:bg-[#e85925] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Add Restaurant</span>

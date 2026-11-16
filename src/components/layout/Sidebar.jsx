@@ -43,7 +43,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-[260px] xl:w-[280px] bg-[#05291e] text-white flex flex-col justify-between shrink-0 shadow-2xl transition-transform duration-300 ease-in-out select-none ${
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-[260px] xl:w-[280px] bg-[#163A2D] text-white flex flex-col justify-between shrink-0 shadow-2xl transition-transform duration-300 ease-in-out select-none ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -53,7 +53,7 @@ export default function Sidebar({ isOpen, onClose }) {
             {/* Logo Lockup */}
             <div className="flex flex-col text-left">
               <Logo theme="light" size="normal" showSubtitle={false} />
-              <span className="text-[10px] text-emerald-300/80 font-medium tracking-wide mt-0.5 pl-12">
+              <span className="text-[10px] text-emerald-200/80 font-medium tracking-wide mt-0.5 pl-12">
                 Delicious Food, Delivered
               </span>
             </div>
@@ -91,12 +91,13 @@ export default function Sidebar({ isOpen, onClose }) {
                   key={item.name}
                   to={item.path}
                   onClick={() => onClose && onClose()}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-gradient-to-r from-[#ff5e28] to-[#ff7539] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-600/30 cursor-pointer transition-transform active:scale-[0.98]"
+                  className="w-full flex items-center justify-between px-4 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-[#FF6B35] to-[#ff7d4a] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-600/30 cursor-pointer transition-all active:scale-[0.98]"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                     <span>{item.name}</span>
                   </div>
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/90" />
                 </Link>
               );
             }

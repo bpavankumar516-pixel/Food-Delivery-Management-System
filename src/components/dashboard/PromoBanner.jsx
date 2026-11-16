@@ -6,7 +6,7 @@ export default function PromoBanner() {
   const { setIsReportsOpen } = useDashboard();
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0d4e39] via-[#093c2c] to-[#05261c] text-white p-4 sm:p-5 shadow-lg border border-emerald-900/40 flex items-center justify-between min-h-[125px]">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#163A2D] via-[#102e23] to-[#0a1f18] text-white p-4 sm:p-5 shadow-lg border border-emerald-900/40 flex items-center justify-between min-h-[125px]">
       {/* Decorative leaf watermarks */}
       <div className="absolute -top-6 -left-6 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl pointer-events-none" />
       <div className="absolute -bottom-8 right-16 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -40,7 +40,7 @@ export default function PromoBanner() {
         <button
           type="button"
           onClick={() => setIsReportsOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#ff5e28] hover:bg-[#ff7539] text-white text-[11px] sm:text-xs font-bold shadow-md shadow-orange-600/30 transition-all hover:gap-2 cursor-pointer active:scale-95"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF6B35] hover:bg-[#ea5d28] text-white text-[11px] sm:text-xs font-bold shadow-md shadow-orange-600/30 transition-all hover:gap-2 cursor-pointer active:scale-95"
         >
           <span>View Reports</span>
           <ArrowRight className="w-3.5 h-3.5" />

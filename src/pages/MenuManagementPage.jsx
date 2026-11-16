@@ -140,7 +140,7 @@ export default function MenuManagementPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
               {/* Title & Subtitle */}
               <div className="space-y-1">
-                <h1 className="text-2xl sm:text-3xl font-black text-[#0f2e22] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#163A2D] tracking-tight">
                   Menu Management
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 font-medium">
@@ -152,7 +152,7 @@ export default function MenuManagementPage() {
               <button
                 type="button"
                 onClick={() => setIsAddPanelOpen((prev) => !prev)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-950/20 transition-transform active:scale-[0.98] cursor-pointer self-start md:self-auto shrink-0"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#163A2D] hover:bg-[#0f271e] text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-950/20 transition-transform active:scale-[0.98] cursor-pointer self-start md:self-auto shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Add Menu Item</span>

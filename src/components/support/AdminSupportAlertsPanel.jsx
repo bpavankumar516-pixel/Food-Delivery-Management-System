@@ -112,10 +112,10 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="px-3.5 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-xs font-bold text-slate-700">
-              Open Tickets: <span className="text-[#ff5722] font-black">{openCount}</span>
+              Open Tickets: <span className="text-[#FF6B35] font-black">{openCount}</span>
             </div>
             <div className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-slate-700">
-              Unread Alerts: <span className="text-[#064e3b] font-black">{unreadCount}</span>
+              Unread Alerts: <span className="text-[#163A2D] font-black">{unreadCount}</span>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
             onClick={() => setSubTab('tickets')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
               subTab === 'tickets'
-                ? 'bg-[#064e3b] text-white shadow-xs'
+                ? 'bg-[#163A2D] text-white shadow-xs'
                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -142,7 +142,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
             onClick={() => setSubTab('notifications')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
               subTab === 'notifications'
-                ? 'bg-[#ff5722] text-white shadow-xs'
+                ? 'bg-[#FF6B35] text-white shadow-xs'
                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -162,7 +162,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                 ? 'Search tickets by ID, customer, order, or subject...'
                 : 'Search alerts & notifications...'
             }
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
+            className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-[#163A2D]"
           />
         </div>
       </div>
@@ -182,9 +182,9 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                   key={f.id}
                   type="button"
                   onClick={() => setTicketStatusFilter(f.id)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer transition-all ${
                     ticketStatusFilter === f.id
-                      ? 'bg-[#ff5722] text-white'
+                      ? 'bg-[#FF6B35] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -212,7 +212,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono font-black text-xs text-[#064e3b]">{t.id}</span>
+                        <span className="font-mono font-black text-xs text-[#163A2D]">{t.id}</span>
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             t.status === 'Resolved'
@@ -255,7 +255,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                       onError={(e) => {
                         e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                           activeTicket.customerName || 'C'
-                        )}&background=064e3b&color=fff`;
+                        )}&background=163a2d&color=fff`;
                       }}
                     />
                     <div>
@@ -289,7 +289,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                       <button
                         type="button"
                         onClick={() => updateTicketStatus(activeTicket.id, 'Resolved')}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1 shadow-xs"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Mark Resolved
@@ -305,7 +305,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                       key={idx}
                       className={`p-3.5 rounded-2xl text-xs max-w-[85%] ${
                         msg.sender === 'admin'
-                          ? 'ml-auto bg-[#064e3b] text-white'
+                          ? 'ml-auto bg-[#163A2D] text-white shadow-xs'
                           : 'bg-slate-100 text-slate-800'
                       }`}
                     >
@@ -328,11 +328,11 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Write an official admin reply to the customer..."
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-[#163A2D]"
                   />
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-[#ff5722] hover:bg-[#e64a19] text-white font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#ea5d28] text-white font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Send Reply</span>
@@ -352,8 +352,8 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                   key={f}
                   type="button"
                   onClick={() => setNotifFilter(f)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold cursor-pointer ${
-                    notifFilter === f ? 'bg-[#064e3b] text-white' : 'bg-slate-100 text-slate-600'
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold cursor-pointer transition-all ${
+                    notifFilter === f ? 'bg-[#163A2D] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   {f}
@@ -415,7 +415,7 @@ export default function AdminSupportAlertsPanel({ showSummaryStrip = false }) {
                     <div className="flex items-start gap-3">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          n.isRead ? 'bg-slate-100 text-slate-500' : 'bg-[#ff5722] text-white'
+                          n.isRead ? 'bg-slate-100 text-slate-500' : 'bg-[#FF6B35] text-white shadow-xs'
                         }`}
                       >
                         <Icon className="w-4.5 h-4.5" />

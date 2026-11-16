@@ -53,8 +53,8 @@ export default function OrderStatusDonut() {
               <Tooltip
                 formatter={(val) => [`${val}%`, 'Share']}
                 contentStyle={{
-                  backgroundColor: '#05291e',
-                  borderColor: '#064e3b',
+                  backgroundColor: '#163A2D',
+                  borderColor: '#102e23',
                   borderRadius: '10px',
                   color: '#fff',
                   fontSize: '11px',

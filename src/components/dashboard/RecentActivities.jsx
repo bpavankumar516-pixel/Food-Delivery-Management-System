@@ -80,7 +80,7 @@ export default function RecentActivities() {
         <button
           type="button"
           onClick={() => setIsAllActivitiesOpen(true)}
-          className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors cursor-pointer group"
+          className="text-xs font-semibold text-[#163A2D] hover:text-[#0f2920] flex items-center gap-1 transition-colors cursor-pointer group"
         >
           <span>View All</span>
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />

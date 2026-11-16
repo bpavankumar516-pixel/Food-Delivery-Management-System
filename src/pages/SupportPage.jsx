@@ -25,11 +25,11 @@ export default function SupportPage() {
           {/* Top Hero Banner */}
           <div className="rounded-3xl bg-gradient-to-r from-[#fef8f0] via-[#fffbf6] to-[#f2f7ef] border border-orange-100/80 p-5 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-13 h-13 rounded-2xl bg-[#064e3b] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/15">
+              <div className="w-13 h-13 rounded-2xl bg-[#163A2D] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/15">
                 <Headphones className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-[#0f2e22] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#163A2D] tracking-tight">
                   Notifications &amp; Customer Support
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-600 font-medium">
@@ -40,11 +40,11 @@ export default function SupportPage() {
 
             {/* Summary Badges */}
             <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="px-4 py-2 rounded-2xl bg-white border border-slate-200 text-xs font-bold">
-                Open Tickets: <span className="text-[#ff5722] font-black">{openCount}</span>
+              <div className="px-4 py-2 rounded-2xl bg-white border border-slate-200 text-xs font-bold shadow-2xs">
+                Open Tickets: <span className="text-[#FF6B35] font-black">{openCount}</span>
               </div>
-              <div className="px-4 py-2 rounded-2xl bg-white border border-slate-200 text-xs font-bold">
-                Unread Alerts: <span className="text-[#064e3b] font-black">{unreadCount}</span>
+              <div className="px-4 py-2 rounded-2xl bg-white border border-slate-200 text-xs font-bold shadow-2xs">
+                Unread Alerts: <span className="text-[#163A2D] font-black">{unreadCount}</span>
               </div>
             </div>
           </div>

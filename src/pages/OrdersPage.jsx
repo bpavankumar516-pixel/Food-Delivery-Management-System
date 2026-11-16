@@ -365,15 +365,15 @@ export default function OrdersPage() {
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
               <div className="flex items-start sm:items-center gap-4">
-                <div className="w-13 h-13 rounded-2xl bg-[#064e3b] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/15">
+                <div className="w-13 h-13 rounded-2xl bg-[#163A2D] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/15">
                   <ShoppingBag className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <h1 className="text-2xl sm:text-3xl font-black text-[#0f2e22] tracking-tight">
+                    <h1 className="text-2xl sm:text-3xl font-black text-[#163A2D] tracking-tight">
                       Orders & Live Dispatch
                     </h1>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100/80 text-[#064e3b] border border-emerald-200 text-[11px] font-bold">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100/80 text-[#163A2D] border border-emerald-200 text-[11px] font-bold">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                       <span>API Live • {stats.uniqueCustomersCount || customers.length} Customers Linked</span>
                     </span>
@@ -395,7 +395,7 @@ export default function OrdersPage() {
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                     Eligible Order Value
                   </p>
-                  <p className="text-lg font-black text-[#064e3b] leading-tight">
+                  <p className="text-lg font-black text-[#163A2D] leading-tight">
                     ₹{stats.eligibleRevenue.toLocaleString()}
                   </p>
                 </div>

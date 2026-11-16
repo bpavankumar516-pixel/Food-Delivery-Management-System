@@ -96,12 +96,12 @@ export default function CustomersPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
               <div className="flex items-center gap-4">
                 {/* Green circular icon with users */}
-                <div className="w-13 h-13 rounded-2xl bg-[#064e3b]/10 text-[#064e3b] flex items-center justify-center shrink-0 border border-[#064e3b]/15">
+                <div className="w-13 h-13 rounded-2xl bg-[#163A2D]/10 text-[#163A2D] flex items-center justify-center shrink-0 border border-[#163A2D]/15">
                   <Users className="w-7 h-7" />
                 </div>
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl sm:text-3xl font-black text-[#0f2e22] tracking-tight">
+                    <h1 className="text-2xl sm:text-3xl font-black text-[#163A2D] tracking-tight">
                       Customers
                     </h1>
                   </div>

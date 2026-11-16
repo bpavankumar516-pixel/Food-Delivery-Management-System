@@ -106,7 +106,7 @@ export default function Header({ onMenuClick }) {
                     ? 'Search customers by name, email, phone, or city...'
                     : 'Search restaurants, orders, menu items...'
                 }
-                className="w-full pl-10 pr-9 py-2 sm:py-2.5 bg-white border border-slate-200/90 rounded-2xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0e4d3a] focus:ring-2 focus:ring-[#0e4d3a]/10 shadow-2xs transition-all"
+                className="w-full pl-10 pr-9 py-2 sm:py-2.5 bg-white border border-slate-200/90 rounded-2xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#163A2D] focus:ring-2 focus:ring-[#163A2D]/10 shadow-2xs transition-all"
               />
               {searchQuery && (
                 <button

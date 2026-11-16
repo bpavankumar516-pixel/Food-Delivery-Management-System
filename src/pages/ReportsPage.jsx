@@ -215,11 +215,11 @@ export default function ReportsPage() {
           <div className="relative rounded-3xl bg-gradient-to-r from-[#fef8f0] via-[#fffbf6] to-[#f2f7ef] border border-orange-100/80 p-5 sm:p-6 overflow-hidden shadow-2xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
               <div className="flex items-center gap-4">
-                <div className="w-13 h-13 rounded-2xl bg-[#064e3b] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/15">
+                <div className="w-13 h-13 rounded-2xl bg-[#163A2D] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/15">
                   <BarChart3 className="w-6 h-6" />
                 </div>
                 <div className="space-y-0.5">
-                  <h1 className="text-2xl sm:text-3xl font-black text-[#0f2e22] tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-black text-[#163A2D] tracking-tight">
                     Reports & Analytics Hub
                   </h1>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
@@ -243,7 +243,7 @@ export default function ReportsPage() {
                 <button
                   type="button"
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#ff5722] hover:bg-[#e64a19] text-white font-bold text-xs shadow-md shadow-orange-600/25 transition-transform active:scale-98 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#FF6B35] hover:bg-[#e85925] text-white font-bold text-xs shadow-md shadow-orange-600/25 transition-transform active:scale-98 cursor-pointer"
                   title="Download CSV dataset"
                 >
                   <Download className="w-4 h-4" />

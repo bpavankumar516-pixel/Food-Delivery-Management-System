@@ -184,7 +184,7 @@ export default function SettingsPage() {
             <div className="flex flex-col sm:flex-row items-center sm:items-center gap-6 relative z-10 text-center sm:text-left">
               {/* White boxed avatar with initials matching Image 1 */}
               <div className="relative shrink-0">
-                <div className="w-22 h-22 rounded-2xl bg-[#ff5722] text-white flex items-center justify-center font-black text-2xl shadow-xl ring-4 ring-white/20">
+                <div className="w-22 h-22 rounded-2xl bg-[#FF6B35] text-white flex items-center justify-center font-black text-2xl shadow-xl ring-4 ring-white/20">
                   <span>{getInitials(profileForm.name || 'Admin')}</span>
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
@@ -246,7 +246,7 @@ export default function SettingsPage() {
                   onClick={() => handleSelectTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-[#064e3b] text-white shadow-xs'
+                      ? 'bg-[#163A2D] text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
@@ -255,7 +255,7 @@ export default function SettingsPage() {
                   {tab.badge > 0 && (
                     <span
                       className={`px-1.5 py-0.5 rounded-full text-[10px] font-black leading-none ${
-                        isActive ? 'bg-[#ff5722] text-white' : 'bg-[#ff5722] text-white'
+                        isActive ? 'bg-[#FF6B35] text-white' : 'bg-[#FF6B35] text-white'
                       }`}
                     >
                       {tab.badge}
@@ -342,7 +342,7 @@ export default function SettingsPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold cursor-pointer shadow-md shadow-emerald-950/20"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#163A2D] hover:bg-[#102c22] text-white font-bold cursor-pointer shadow-md shadow-emerald-950/20"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Profile Changes</span>
@@ -436,7 +436,7 @@ export default function SettingsPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#163A2D] hover:bg-[#102c22] text-white font-bold cursor-pointer transition-colors shadow-xs"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Business Details</span>
@@ -513,7 +513,7 @@ export default function SettingsPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#163A2D] hover:bg-[#102c22] text-white font-bold cursor-pointer transition-colors shadow-xs"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Tax Configuration</span>
@@ -576,7 +576,7 @@ export default function SettingsPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#163A2D] hover:bg-[#102c22] text-white font-bold cursor-pointer transition-colors shadow-xs"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Delivery Settings</span>
@@ -638,7 +638,7 @@ export default function SettingsPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#064e3b] hover:bg-[#043d2e] text-white font-bold cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#163A2D] hover:bg-[#102c22] text-white font-bold cursor-pointer transition-colors shadow-xs"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Application Preferences</span>
@@ -713,7 +713,7 @@ export default function SettingsPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#ea5d28] text-white font-bold cursor-pointer transition-colors shadow-xs"
                   >
                     <Lock className="w-4 h-4" />
                     <span>Update Account Password</span>
